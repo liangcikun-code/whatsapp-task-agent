@@ -712,9 +712,11 @@
         }
         setTimeout(() => loadTasks(), 500);
       } catch (e) {
+        // Revert DOM
         if (isDone) rowEl.classList.add('checked');
         else rowEl.classList.remove('checked');
-        toast('操作失败：' + e.message);
+        console.error('toggle error:', e.message);
+        toast('操作失败');
       } finally {
         toggling = false;
       }
