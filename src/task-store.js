@@ -17,16 +17,16 @@ dayjs.extend(utc);
 
 const supabase = createClient(config.supabase.url, config.supabase.anonKey);
 
-/** Generate sequential task ID: #NNN (e.g. #001, #002) — resets daily */
+/** Generate ordered task ID: YYYYMMDD-NNN (e.g. 20260728-001) */
 async function generateTag() {
   const today = dayjs().format('YYYYMMDD');
-  // Count tasks created today
   const { count, error } = await supabase
     .from('tasks')
-    .select('*', { count: 'exact', head: true });
-    // No date filter needed — we just want total count for uniqueness
-  const seq = (count || 0) + 1;
-  return `T${today}-${String(seq).padStart(3, '0')}`;
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', dayjs().startOf('day').toISOString())
+    .lte('created_at', dayjs().endOf('day').toISOString());
+  const seq = String((count || 0) + 1).padStart(3, '0');
+  return `${today}-${seq}`;
 }
 
 // ==================== 任务 CRUD ====================
