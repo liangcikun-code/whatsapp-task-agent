@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Task Agent — Dashboard</title>
+  <style>
+    /* ===== Reset & Variables ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface-hover: #fafafa;
+      --border: #e5e5e7;
+      --text: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-tertiary: #999;
+      --brand: #2563eb;
+      --brand-dim: #dbeafe;
+      --high: #ef4444;
+      --high-bg: #fef2f2;
+      --medium: #f59e0b;
+      --medium-bg: #fffbeb;
+      --low: #22c55e;
+      --low-bg: #f0fdf4;
+      --done: #6b7280;
+      --done-bg: #f9fafb;
+      --overdue: #dc2626;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-lg: 0 4px 24px rgba(0,0,0,.08);
+      --transition: 150ms ease;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ===== Layout ===== */
+    .shell {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .header .status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .8125rem;
+      color: var(--text-secondary);
+    }
+    .header .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--low);
+    }
+    .header .dot.off { background: var(--high); }
+
+    /* ===== Stat Cards ===== */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat .label {
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--text-secondary);
+    }
+    .stat .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .stat .sub {
+      font-size: .75rem;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== Tabs ===== */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .tab {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      font-size: .8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .tab.active {
+      background: var(--text);
+      color: white;
+    }
+    .tab:hover:not(.active) { color: var(--text); background: var(--bg); }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .filter-row select {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: .8125rem;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    /* ===== Action Bar ===== */
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: .8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--brand); color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-danger { background: var(--high); color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-sm { padding: 5px 10px; font-size: .75rem; }
+
+    /* ===== Priority Groups ===== */
+    .priority-group {
+      margin-bottom: 20px;
+    }
+    .priority-group h2 {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+    .priority-group h2 .count { font-weight: 500; }
+
+    /* ===== Task Card ===== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--transition), transform var(--transition);
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .card:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-1px);
+    }
+    .card.done {
+      opacity: .6;
+      background: var(--done-bg);
+    }
+    .card.done .card-title { text-decoration: line-through; }
+
+    .card-priority {
+      width: 4px;
+      min-height: 40px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      align-self: stretch;
+    }
+    .card-priority.high { background: var(--high); }
+    .card-priority.medium { background: var(--medium); }
+    .card-priority.low { background: var(--low); }
+
+    .card-body { flex: 1; min-width: 0; }
+    .card-title {
+      font-size: .9375rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+      word-break: break-word;
+    }
+    .card-desc {
+      font-size: .8125rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: .75rem;
+      color: var(--text-tertiary);
+      align-items: center;
+    }
+    .card-meta .tag {
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: .6875rem;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .tag-high { background: var(--high-bg); color: var(--high); }
+    .tag-medium { background: var(--medium-bg); color: #b45309; }
+    .tag-low { background: var(--low-bg); color: #15803d; }
+    .tag-overdue { background: #fef2f2; color: var(--overdue); font-weight: 600; }
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .icon-btn {
+      width: 34px; height: 34px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      transition: all var(--transition);
+      color: var(--text-secondary);
+    }
+    .icon-btn:hover { background: var(--bg); }
+    .icon-btn.done-btn:hover { background: var(--low-bg); color: var(--low); border-color: var(--low); }
+    .icon-btn.del-btn:hover { background: var(--high-bg); color: var(--high); border-color: var(--high); }
+
+    /* ===== Modal ===== */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.3);
+      backdrop-filter: blur(4px);
+      display: grid;
+      place-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .overlay.hidden { display: none; }
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 28px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: var(--shadow-lg);
+    }
+    .modal h2 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      letter-spacing: -0.01em;
+    }
+    .modal label {
+      display: block;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      margin-top: 12px;
+    }
+    .modal input, .modal textarea, .modal select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: .875rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color var(--transition);
+    }
+    .modal input:focus, .modal textarea:focus, .modal select:focus {
+      outline: none;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-dim);
+    }
+    .modal textarea { resize: vertical; min-height: 70px; }
+    .modal .btn-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* ===== Settings Panel ===== */
+    .settings-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .settings-panel h3 {
+      font-size: .875rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: .875rem; font-weight: 500; }
+    .toggle-hint { font-size: .75rem; color: var(--text-tertiary); }
+    .switch {
+      position: relative;
+      width: 44px; height: 26px;
+      flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider {
+      position: absolute;
+      inset: 0;
+      background: #d1d5db;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .switch .slider::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform var(--transition);
+    }
+    .switch input:checked + .slider { background: var(--brand); }
+    .switch input:checked + .slider::after { transform: translateX(18px); }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: var(--text);
+      color: white;
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: .8125rem;
+      font-weight: 600;
+      z-index: 200;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 250ms ease;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ===== Empty State ===== */
+    .empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-tertiary);
+    }
+    .empty .icon { font-size: 2.5rem; margin-bottom: 8px; }
+    .empty p { font-size: .875rem; }
+
+    /* ===== Spinner ===== */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--brand);
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 640px) {
+      .shell { padding: 16px 12px 40px; }
+      .card { flex-wrap: wrap; }
+      .card-actions { width: 100%; justify-content: flex-end; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .header { flex-direction: column; align-items: flex-start; }
+      .tabs { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Header -->
+    <div class="header">
+      <h1>📋 WhatsApp Task Agent</h1>
+      <div class="status">
+        <span class="dot" id="health-dot"></span>
+        <span id="health-text">连接中...</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="stats"></div>
+
+    <!-- Schedule Settings -->
+    <div class="settings-panel" id="settings-panel">
+      <h3>⚙️ 日程提醒配置</h3>
+      <div id="toggle-list"></div>
+    </div>
+
+    <!-- Tabs & Actions -->
+    <div class="tabs" id="tabs"></div>
+    <div class="filter-row">
+      <select id="priority-filter">
+        <option value="">全部优先级</option>
+        <option value="high">🔴 高</option>
+        <option value="medium">🟡 中</option>
+        <option value="low">🟢 低</option>
+      </select>
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="refreshTasks()" id="refresh-btn">🔄 刷新</button>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ 新建任务</button>
+      </div>
+    </div>
+
+    <!-- Task List -->
+    <div id="task-list"></div>
+
+    <!-- Create/Edit Modal -->
+    <div class="overlay hidden" id="modal-overlay">
+      <div class="modal">
+        <h2 id="modal-title">新建任务</h2>
+        <form id="task-form" onsubmit="submitTask(event)">
+          <input type="hidden" id="task-id">
+          <label for="title">任务标题 *</label>
+          <input type="text" id="title" placeholder="输入任务名称..." required autocomplete="off">
+          <label for="description">描述</label>
+          <textarea id="description" placeholder="可选：补充细节、截止说明等" rows="2"></textarea>
+          <label for="priority">优先级</label>
+          <select id="priority">
+            <option value="medium">🟡 中</option>
+            <option value="high">🔴 高</option>
+            <option value="low">🟢 低</option>
+          </select>
+          <label for="deadline">截止日期</label>
+          <input type="datetime-local" id="deadline">
+          <div class="btn-row">
+            <button type="button" class="btn btn-ghost" onclick="closeModal()">取消</button>
+            <button type="submit" class="btn btn-primary" id="submit-btn">创建任务</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    // ===================== State =====================
+    const API = '';  // same origin
+    let tasks = [];
+    let stats = {};
+    let scheduleConfig = {};
+    let statusTab = '';       // 'pending' | 'done' | ''
+    let priorityFilter = '';
+
+    // ===================== Init =====================
+    async function init() {
+      await Promise.all([checkHealth(), loadScheduleConfig(), loadTasks()]);
+      setupTabs();
+      setupPriorityFilter();
+      buildToggleList();
+    }
+
+    // ===================== Health =====================
+    async function checkHealth() {
+      const dot = document.getElementById('health-dot');
+      const text = document.getElementById('health-text');
+      try {
+        const r = await fetch(API + '/api/health');
+        if (r.ok) {
+          dot.classList.remove('off');
+          text.textContent = 'API 在线';
+        } else {
+          dot.classList.add('off');
+          text.textContent = 'API 异常';
+        }
+      } catch {
+        dot.classList.add('off');
+        text.textContent = 'API 离线';
+      }
+    }
+
+    // ===================== Schedule Config =====================
+    async function loadScheduleConfig() {
+      try {
+        const r = await fetch(API + '/api/schedule/config');
+        scheduleConfig = await r.json();
+      } catch {
+        scheduleConfig = { morningReport: true, eveningReport: false, weeklyReport: true, monthlyReport: false };
+      }
+    }
+
+    function buildToggleList() {
+      const items = [
+        { key: 'morningReport', label: '每日早报', hint: '09:00 — 今日到期 + 逾期提醒' },
+        { key: 'eveningReport', label: '每日晚报', hint: '21:00 — 今日创建 + 明日待办' },
+        { key: 'weeklyReport', label: '周报', hint: '周日 20:00 — 本周完成率 + 下周待办' },
+        { key: 'monthlyReport', label: '月报', hint: '次月 1 号 20:00 — 月度回顾 + 趋势' },
+      ];
+      document.getElementById('toggle-list').innerHTML = items.map(i => `
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">${i.label}</div>
+            <div class="toggle-hint">${i.hint}</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" ${scheduleConfig[i.key] ? 'checked' : ''}
+                   onchange="toggleSchedule('${i.key}', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+      `).join('');
+    }
+
+    async function toggleSchedule(key, value) {
+      try {
+        const r = await fetch(API + '/api/schedule/config', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [key]: value }),
+        });
+        const updated = await r.json();
+        scheduleConfig = updated;
+        toast(value ? `✅ ${labelFor(key)} 已开启` : `🔕 ${labelFor(key)} 已关闭`);
+      } catch (e) {
+        toast('❌ 更新失败，请检查 API 连接');
+        buildToggleList(); // revert UI
+      }
+    }
+
+    function labelFor(key) {
+      const map = { morningReport: '每日早报', eveningReport: '每日晚报', weeklyReport: '周报', monthlyReport: '月报' };
+      return map[key] || key;
+    }
+
+    // ===================== Tasks =====================
+    async function loadTasks() {
+      const btn = document.getElementById('refresh-btn');
+      btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        let url = API + '/api/tasks?';
+        if (statusTab) url += 'status=' + statusTab + '&';
+        if (priorityFilter) url += 'priority=' + priorityFilter + '&';
+        const r = await fetch(url);
+        const data = await r.json();
+        tasks = data.tasks || [];
+        stats = data.stats || { total: 0, done: 0, pending: 0 };
+        renderStats();
+        renderTasks();
+      } catch (e) {
+        toast('❌ 加载失败，请检查 API 连接');
+      } finally {
+        btn.innerHTML = '🔄 刷新';
+      }
+    }
+
+    function refreshTasks() { loadTasks(); }
+
+    // ===================== Stats =====================
+    function renderStats() {
+      const overdue = tasks.filter(t => {
+        if (t.status === 'done' || !t.deadline) return false;
+        return new Date(t.deadline) < new Date();
+      }).length;
+      const rate = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+
+      document.getElementById('stats').innerHTML = `
+        <div class="stat"><span class="label">全部任务</span><span class="value">${stats.total || 0}</span></div>
+        <div class="stat"><span class="label">待办</span><span class="value">${stats.pending || 0}</span><span class="sub">进行中</span></div>
+        <div class="stat"><span class="label">已完成</span><span class="value">${stats.done || 0}</span><span class="sub">完成率 ${rate}%</span></div>
+        <div class="stat"><span class="label">已逾期</span><span class="value" style="color:var(--overdue)">${overdue}</span><span class="sub">待处理</span></div>
+      `;
+    }
+
+    // ===================== Tabs =====================
+    function setupTabs() {
+      const tabs = [
+        { key: '', label: '全部' },
+        { key: 'pending', label: '📌 待办' },
+        { key: 'done', label: '✅ 已完成' },
+      ];
+      document.getElementById('tabs').innerHTML = tabs.map(t => `
+        <button class="tab ${statusTab === t.key ? 'active' : ''}"
+                onclick="switchTab('${t.key}')">${t.label}</button>
+      `).join('');
+    }
+
+    function switchTab(key) {
+      statusTab = key;
+      setupTabs();
+      loadTasks();
+    }
+
+    function setupPriorityFilter() {
+      document.getElementById('priority-filter').value = priorityFilter;
+      document.getElementById('priority-filter').onchange = (e) => {
+        priorityFilter = e.target.value;
+        loadTasks();
+      };
+    }
+
+    // ===================== Render Tasks =====================
+    function renderTasks() {
+      const container = document.getElementById('task-list');
+      if (tasks.length === 0) {
+        container.innerHTML = `
+          <div class="empty">
+            <div class="icon">📭</div>
+            <p>${statusTab === 'done' ? '还没有完成的任务' : '没有待办任务'}</p>
+            ${!statusTab ? '<p style="margin-top:4px">点击 "新建任务" 创建第一个</p>' : ''}
+          </div>`;
+        return;
+      }
+
+      // Group by priority
+      const groups = { high: [], medium: [], low: [] };
+      tasks.forEach(t => {
+        const g = groups[t.priority] || groups['medium'];
+        g.push(t);
+      });
+
+      const order = ['high', 'medium', 'low'];
+      const labels = { high: '🔴 高优先级', medium: '🟡 中优先级', low: '🟢 低优先级' };
+
+      let html = '';
+      order.forEach(p => {
+        const list = groups[p];
+        if (!list || list.length === 0) return;
+        html += `<div class="priority-group">
+          <h2>${labels[p]} <span class="count">· ${list.length}</span></h2>`;
+        list.forEach(t => html += taskCard(t));
+        html += `</div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function taskCard(t) {
+      const isOverdue = t.status === 'pending' && t.deadline && new Date(t.deadline) < new Date();
+      const deadlineStr = t.deadline ? formatDate(t.deadline) : '';
+      const createdStr = formatDate(t.createdAt);
+      const desc = t.description ? `<div class="card-desc">${esc(t.description)}</div>` : '';
+
+      return `
+        <div class="card ${t.status === 'done' ? 'done' : ''}">
+          <div class="card-priority ${t.priority}"></div>
+          <div class="card-body">
+            <div class="card-title">${esc(t.title)}</div>
+            ${desc}
+            <div class="card-meta">
+              <span class="tag tag-${t.priority}">${labelForPriority(t.priority)}</span>
+              ${deadlineStr ? `<span>📅 ${deadlineStr}</span>` : ''}
+              ${isOverdue ? `<span class="tag tag-overdue">已逾期</span>` : ''}
+              <span>🕐 ${createdStr}</span>
+              <span style="font-family:monospace;font-size:.6875rem;opacity:.5">#${t.id}</span>
+            </div>
+          </div>
+          <div class="card-actions">
+            ${t.status === 'pending' ? `<button class="icon-btn done-btn" title="标记完成" onclick="completeTask('${t.id}')">✅</button>` : ''}
+            <button class="icon-btn del-btn" title="删除" onclick="deleteTask('${t.id}')">🗑</button>
+          </div>
+        </div>`;
+    }
+
+    function esc(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const now = new Date();
+      const diff = d - now;
+      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+      // Show relative for near dates
+      const y = d.getFullYear();
+      const M = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hour = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+
+      if (isToday(d)) return `今天 ${hour}:${min}`;
+      if (isTomorrow(d)) return `明天 ${hour}:${min}`;
+      if (days > 0 && days <= 7) return `${days}天后`;
+      if (days < 0 && days >= -1) return '昨天';
+      return `${y}-${M}-${day}`;
+    }
+
+    function isToday(d) {
+      const now = new Date();
+      return d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate();
+    }
+    function isTomorrow(d) {
+      const now = new Date();
+      const tmr = new Date(now);
+      tmr.setDate(tmr.getDate() + 1);
+      return d.getFullYear() === tmr.getFullYear() &&
+        d.getMonth() === tmr.getMonth() &&
+        d.getDate() === tmr.getDate();
+    }
+
+    function labelForPriority(p) {
+      return { high: '高', medium: '中', low: '低' }[p] || p;
+    }
+
+    // ===================== Complete / Delete =====================
+    async function completeTask(id) {
+      try {
+        const r = await fetch(API + '/api/tasks/' + id + '/done', { method: 'POST' });
+        if (!r.ok) throw new Error();
+        toast('✅ 任务已完成');
+        loadTasks();
+      } catch { toast('❌ 操作失败'); }
+    }
+
+    async function deleteTask(id) {
+      if (!confirm('确定要删除这个任务吗？')) return;
+      try {
+        const r = await fetch(API + '/api/tasks/' + id, { method: 'DELETE' });
+        if (!r.ok) throw new Error();
+        toast('🗑 任务已删除');
+        loadTasks();
+      } catch { toast('❌ 删除失败'); }
+    }
+
+    // ===================== Create Modal =====================
+    function openCreateModal() {
+      document.getElementById('modal-title').textContent = '新建任务';
+      document.getElementById('submit-btn').textContent = '创建任务';
+      document.getElementById('task-form').reset();
+      document.getElementById('task-id').value = '';
+      document.getElementById('modal-overlay').classList.remove('hidden');
+      document.getElementById('title').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
+    }
+
+    async function submitTask(e) {
+      e.preventDefault();
+      const id = document.getElementById('task-id').value;
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const priority = document.getElementById('priority').value;
+      const deadline = document.getElementById('deadline').value;
+
+      if (!title) return;
+
+      const body = { title, description, priority };
+      if (deadline) body.deadline = new Date(deadline).toISOString();
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = '保存中...';
+
+      try {
+        let r;
+        if (id) {
+          r = await fetch(API + '/api/tasks/' + id, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        } else {
+          r = await fetch(API + '/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        }
+        if (!r.ok) throw new Error();
+        toast(id ? '✏️ 任务已更新' : '✅ 任务已创建');
+        closeModal();
+        loadTasks();
+      } catch (e) {
+        toast('❌ 保存失败');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = id ? '保存' : '创建任务';
+      }
+    }
+
+    // Close modal on overlay click
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('modal-overlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeModal();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+      });
+    });
+
+    // ===================== Toast =====================
+    let toastTimer;
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    // ===================== Kick off =====================
+    init();
+  </script>
+</body>
+</html>
