@@ -17,16 +17,13 @@ dayjs.extend(utc);
 
 const supabase = createClient(config.supabase.url, config.supabase.anonKey);
 
-/** Generate ordered task ID: YYYYMMDD-NNN (e.g. 20260728-001) */
+/** Generate auto-increment task ID: 00001, 00002, ... */
 async function generateTag() {
-  const today = dayjs().format('YYYYMMDD');
   const { count, error } = await supabase
     .from('tasks')
-    .select('*', { count: 'exact', head: true })
-    .gte('created_at', dayjs().startOf('day').toISOString())
-    .lte('created_at', dayjs().endOf('day').toISOString());
-  const seq = String((count || 0) + 1).padStart(3, '0');
-  return `${today}-${seq}`;
+    .select('*', { count: 'exact', head: true });
+  if (error) throw new Error(`tag生成失败: ${error.message}`);
+  return String((count || 0) + 1).padStart(5, '0');
 }
 
 // ==================== 任务 CRUD ====================
