@@ -33,7 +33,7 @@ async function generateTag() {
 // ==================== 任务 CRUD ====================
 
 export async function createTask({ title, description, priority, deadline, source, sourceChat }) {
-  const tag = generateTag();
+  const tag = await generateTag();
   const { data, error } = await supabase
     .from('tasks')
     .insert({
