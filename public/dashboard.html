@@ -24,9 +24,12 @@
       --medium-bg: #fffbeb;
       --low: #22c55e;
       --low-bg: #f0fdf4;
+      --success: #059669;
+      --success-light: #d1fae5;
       --done: #6b7280;
       --done-bg: #f9fafb;
       --overdue: #dc2626;
+      --overdue-bg: #fef2f2;
       --radius: 12px;
       --radius-sm: 8px;
       --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
@@ -160,7 +163,7 @@
       cursor: pointer;
     }
 
-    /* ===== Action Bar ===== */
+    /* ===== Buttons ===== */
     .actions {
       display: flex;
       gap: 8px;
@@ -186,13 +189,11 @@
       border: 1px solid var(--border);
     }
     .btn-ghost:hover { background: var(--bg); }
-    .btn-danger { background: var(--high); color: white; }
-    .btn-danger:hover { background: #dc2626; }
     .btn-sm { padding: 5px 10px; font-size: .75rem; }
 
     /* ===== Priority Groups ===== */
     .priority-group {
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
     .priority-group h2 {
       font-size: .75rem;
@@ -205,57 +206,78 @@
     }
     .priority-group h2 .count { font-weight: 500; }
 
-    /* ===== Task Card ===== */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      margin-bottom: 8px;
-      box-shadow: var(--shadow-sm);
-      transition: box-shadow var(--transition), transform var(--transition);
+    /* ===== Checklist-style Task Row ===== */
+    .task-row {
       display: flex;
       align-items: flex-start;
-      gap: 14px;
+      gap: 12px;
+      padding: 14px 16px;
+      margin: 4px 0;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
     }
-    .card:hover {
-      box-shadow: var(--shadow);
-      transform: translateY(-1px);
-    }
-    .card.done {
-      opacity: .6;
-      background: var(--done-bg);
-    }
-    .card.done .card-title { text-decoration: line-through; }
+    .task-row:hover { background: var(--surface-hover); box-shadow: var(--shadow-sm); }
 
-    .card-priority {
+    /* Priority stripe — clickable area on far left */
+    .task-row .priority-stripe {
       width: 4px;
-      min-height: 40px;
+      min-height: 38px;
       border-radius: 2px;
       flex-shrink: 0;
       align-self: stretch;
     }
-    .card-priority.high { background: var(--high); }
-    .card-priority.medium { background: var(--medium); }
-    .card-priority.low { background: var(--low); }
+    .priority-stripe.high { background: var(--high); }
+    .priority-stripe.medium { background: var(--medium); }
+    .priority-stripe.low { background: var(--low); }
 
-    .card-body { flex: 1; min-width: 0; }
-    .card-title {
+    /* Custom checkbox — modelled after Vanuatu checklist */
+    .custom-check {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: transparent;
+      transition: all 0.15s;
+      margin-top: 1px;
+      pointer-events: none;   /* clicks fall through to the row */
+    }
+    .task-row.checked .custom-check {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+
+    /* Task content */
+    .task-body { flex: 1; min-width: 0; }
+    .task-title {
       font-size: .9375rem;
       font-weight: 600;
-      margin-bottom: 2px;
       word-break: break-word;
     }
-    .card-desc {
+    .task-row.checked .task-title {
+      text-decoration: line-through;
+      color: var(--done);
+    }
+    .task-desc {
       font-size: .8125rem;
       color: var(--text-secondary);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .card-meta {
+    .task-row.checked .task-desc { color: var(--text-tertiary); }
+
+    /* Task meta row */
+    .task-meta {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -263,7 +285,7 @@
       color: var(--text-tertiary);
       align-items: center;
     }
-    .card-meta .tag {
+    .tag {
       padding: 2px 8px;
       border-radius: 100px;
       font-weight: 600;
@@ -274,29 +296,33 @@
     .tag-high { background: var(--high-bg); color: var(--high); }
     .tag-medium { background: var(--medium-bg); color: #b45309; }
     .tag-low { background: var(--low-bg); color: #15803d; }
-    .tag-overdue { background: #fef2f2; color: var(--overdue); font-weight: 600; }
+    .tag-overdue { background: var(--overdue-bg); color: var(--overdue); font-weight: 700; }
+    .tag-done { background: var(--success-light); color: var(--success); }
 
-    .card-actions {
-      display: flex;
-      gap: 6px;
-      flex-shrink: 0;
-      align-items: center;
-    }
-    .icon-btn {
-      width: 34px; height: 34px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
+    /* Delete button — only on hover */
+    .task-row .del-btn {
+      width: 30px; height: 30px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
       cursor: pointer;
       display: grid;
       place-items: center;
-      font-size: 1rem;
-      transition: all var(--transition);
-      color: var(--text-secondary);
+      font-size: .875rem;
+      color: transparent;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      margin-top: 0;
     }
-    .icon-btn:hover { background: var(--bg); }
-    .icon-btn.done-btn:hover { background: var(--low-bg); color: var(--low); border-color: var(--low); }
-    .icon-btn.del-btn:hover { background: var(--high-bg); color: var(--high); border-color: var(--high); }
+    .task-row:hover .del-btn {
+      color: var(--text-tertiary);
+      border-color: var(--border);
+    }
+    .task-row .del-btn:hover {
+      background: var(--high-bg);
+      color: var(--high);
+      border-color: var(--high);
+    }
 
     /* ===== Modal ===== */
     .overlay {
@@ -448,8 +474,8 @@
     /* ===== Responsive ===== */
     @media (max-width: 640px) {
       .shell { padding: 16px 12px 40px; }
-      .card { flex-wrap: wrap; }
-      .card-actions { width: 100%; justify-content: flex-end; }
+      .task-row { flex-wrap: wrap; }
+      .del-btn { width: 100%; justify-content: flex-end; }
       .stats { grid-template-columns: repeat(2, 1fr); }
       .header { flex-direction: column; align-items: flex-start; }
       .tabs { overflow-x: auto; }
@@ -460,7 +486,7 @@
   <div class="shell">
     <!-- Header -->
     <div class="header">
-      <h1>📋 WhatsApp Task Agent</h1>
+      <h1>&#x1F4CB; WhatsApp Task Agent</h1>
       <div class="status">
         <span class="dot" id="health-dot"></span>
         <span id="health-text">连接中...</span>
@@ -472,7 +498,7 @@
 
     <!-- Schedule Settings -->
     <div class="settings-panel" id="settings-panel">
-      <h3>⚙️ 日程提醒配置</h3>
+      <h3>&#x2699;&#xFE0F; 日程提醒配置</h3>
       <div id="toggle-list"></div>
     </div>
 
@@ -481,12 +507,12 @@
     <div class="filter-row">
       <select id="priority-filter">
         <option value="">全部优先级</option>
-        <option value="high">🔴 高</option>
-        <option value="medium">🟡 中</option>
-        <option value="low">🟢 低</option>
+        <option value="high">&#x1F534; 高</option>
+        <option value="medium">&#x1F7E1; 中</option>
+        <option value="low">&#x1F7E2; 低</option>
       </select>
       <div class="actions">
-        <button class="btn btn-ghost btn-sm" onclick="refreshTasks()" id="refresh-btn">🔄 刷新</button>
+        <button class="btn btn-ghost btn-sm" onclick="refreshTasks()" id="refresh-btn">&#x1F504; 刷新</button>
         <button class="btn btn-primary" onclick="openCreateModal()">+ 新建任务</button>
       </div>
     </div>
@@ -506,9 +532,9 @@
           <textarea id="description" placeholder="可选：补充细节、截止说明等" rows="2"></textarea>
           <label for="priority">优先级</label>
           <select id="priority">
-            <option value="medium">🟡 中</option>
-            <option value="high">🔴 高</option>
-            <option value="low">🟢 低</option>
+            <option value="medium">&#x1F7E1; 中</option>
+            <option value="high">&#x1F534; 高</option>
+            <option value="low">&#x1F7E2; 低</option>
           </select>
           <label for="deadline">截止日期</label>
           <input type="datetime-local" id="deadline">
@@ -526,12 +552,13 @@
 
   <script>
     // ===================== State =====================
-    const API = '';  // same origin
+    const API = '';
     let tasks = [];
     let stats = {};
     let scheduleConfig = {};
-    let statusTab = '';       // 'pending' | 'done' | ''
+    let statusTab = '';
     let priorityFilter = '';
+    let toggling = false;   // debounce guard
 
     // ===================== Init =====================
     async function init() {
@@ -601,10 +628,10 @@
         });
         const updated = await r.json();
         scheduleConfig = updated;
-        toast(value ? `✅ ${labelFor(key)} 已开启` : `🔕 ${labelFor(key)} 已关闭`);
+        toast(value ? `&#x2705; ${labelFor(key)} 已开启` : `&#x1F515; ${labelFor(key)} 已关闭`);
       } catch (e) {
-        toast('❌ 更新失败，请检查 API 连接');
-        buildToggleList(); // revert UI
+        toast('&#x274C; 更新失败，请检查 API 连接');
+        buildToggleList();
       }
     }
 
@@ -628,9 +655,9 @@
         renderStats();
         renderTasks();
       } catch (e) {
-        toast('❌ 加载失败，请检查 API 连接');
+        toast('&#x274C; 加载失败，请检查 API 连接');
       } finally {
-        btn.innerHTML = '🔄 刷新';
+        btn.innerHTML = '&#x1F504; 刷新';
       }
     }
 
@@ -656,8 +683,8 @@
     function setupTabs() {
       const tabs = [
         { key: '', label: '全部' },
-        { key: 'pending', label: '📌 待办' },
-        { key: 'done', label: '✅ 已完成' },
+        { key: 'pending', label: '&#x1F4CC; 待办' },
+        { key: 'done', label: '&#x2705; 已完成' },
       ];
       document.getElementById('tabs').innerHTML = tabs.map(t => `
         <button class="tab ${statusTab === t.key ? 'active' : ''}"
@@ -685,7 +712,7 @@
       if (tasks.length === 0) {
         container.innerHTML = `
           <div class="empty">
-            <div class="icon">📭</div>
+            <div class="icon">&#x1F4ED;</div>
             <p>${statusTab === 'done' ? '还没有完成的任务' : '没有待办任务'}</p>
             ${!statusTab ? '<p style="margin-top:4px">点击 "新建任务" 创建第一个</p>' : ''}
           </div>`;
@@ -700,7 +727,7 @@
       });
 
       const order = ['high', 'medium', 'low'];
-      const labels = { high: '🔴 高优先级', medium: '🟡 中优先级', low: '🟢 低优先级' };
+      const labels = { high: '&#x1F534; 高优先级', medium: '&#x1F7E1; 中优先级', low: '&#x1F7E2; 低优先级' };
 
       let html = '';
       order.forEach(p => {
@@ -708,36 +735,37 @@
         if (!list || list.length === 0) return;
         html += `<div class="priority-group">
           <h2>${labels[p]} <span class="count">· ${list.length}</span></h2>`;
-        list.forEach(t => html += taskCard(t));
+        list.forEach(t => html += taskRow(t));
         html += `</div>`;
       });
       container.innerHTML = html;
     }
 
-    function taskCard(t) {
+    function taskRow(t) {
       const isOverdue = t.status === 'pending' && t.deadline && new Date(t.deadline) < new Date();
+      const isDone = t.status === 'done';
       const deadlineStr = t.deadline ? formatDate(t.deadline) : '';
       const createdStr = formatDate(t.createdAt);
-      const desc = t.description ? `<div class="card-desc">${esc(t.description)}</div>` : '';
+      const desc = t.description ? `<div class="task-desc">${esc(t.description)}</div>` : '';
 
       return `
-        <div class="card ${t.status === 'done' ? 'done' : ''}">
-          <div class="card-priority ${t.priority}"></div>
-          <div class="card-body">
-            <div class="card-title">${esc(t.title)}</div>
+        <div class="task-row ${isDone ? 'checked' : ''}" onclick="toggleTask('${t.id}', this)" data-id="${t.id}">
+          <div class="priority-stripe ${t.priority}"></div>
+          <div class="custom-check">&#x2713;</div>
+          <div class="task-body">
+            <div class="task-title">${esc(t.title)}</div>
             ${desc}
-            <div class="card-meta">
-              <span class="tag tag-${t.priority}">${labelForPriority(t.priority)}</span>
-              ${deadlineStr ? `<span>📅 ${deadlineStr}</span>` : ''}
+            <div class="task-meta">
+              ${isDone
+                ? `<span class="tag tag-done">已完成</span>`
+                : `<span class="tag tag-${t.priority}">${labelForPriority(t.priority)}</span>`}
+              ${deadlineStr ? `<span>&#x1F4C5; ${deadlineStr}</span>` : ''}
               ${isOverdue ? `<span class="tag tag-overdue">已逾期</span>` : ''}
-              <span>🕐 ${createdStr}</span>
+              <span>&#x1F550; ${createdStr}</span>
               <span style="font-family:monospace;font-size:.6875rem;opacity:.5">#${t.id}</span>
             </div>
           </div>
-          <div class="card-actions">
-            ${t.status === 'pending' ? `<button class="icon-btn done-btn" title="标记完成" onclick="completeTask('${t.id}')">✅</button>` : ''}
-            <button class="icon-btn del-btn" title="删除" onclick="deleteTask('${t.id}')">🗑</button>
-          </div>
+          <button class="del-btn" title="删除" onclick="event.stopPropagation(); deleteTask('${t.id}')">&#x1F5D1;</button>
         </div>`;
     }
 
@@ -754,7 +782,6 @@
       const diff = d - now;
       const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
 
-      // Show relative for near dates
       const y = d.getFullYear();
       const M = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
@@ -768,43 +795,55 @@
       return `${y}-${M}-${day}`;
     }
 
-    function isToday(d) {
-      const now = new Date();
-      return d.getFullYear() === now.getFullYear() &&
-        d.getMonth() === now.getMonth() &&
-        d.getDate() === now.getDate();
-    }
+    function isToday(d) { const now = new Date(); return d.toDateString() === now.toDateString(); }
     function isTomorrow(d) {
-      const now = new Date();
-      const tmr = new Date(now);
+      const tmr = new Date();
       tmr.setDate(tmr.getDate() + 1);
-      return d.getFullYear() === tmr.getFullYear() &&
-        d.getMonth() === tmr.getMonth() &&
-        d.getDate() === tmr.getDate();
+      return d.toDateString() === tmr.toDateString();
     }
 
     function labelForPriority(p) {
       return { high: '高', medium: '中', low: '低' }[p] || p;
     }
 
-    // ===================== Complete / Delete =====================
-    async function completeTask(id) {
+    // ===================== Toggle complete (checklist-style click) =====================
+    async function toggleTask(id, rowEl) {
+      if (toggling) return;
+      const isCurrentlyDone = rowEl.classList.contains('checked');
+
+      // Optimistic UI
+      toggling = true;
+      if (isCurrentlyDone) {
+        // Can't un-complete via this UI — use tab switch to see completed
+        toggling = false;
+        return;
+      }
+
+      rowEl.classList.add('checked');
+      rowEl.querySelector('.custom-check').style.color = '#fff';
+
       try {
         const r = await fetch(API + '/api/tasks/' + id + '/done', { method: 'POST' });
         if (!r.ok) throw new Error();
-        toast('✅ 任务已完成');
-        loadTasks();
-      } catch { toast('❌ 操作失败'); }
+        // Brief toast then reload
+        setTimeout(() => { loadTasks(); }, 400);
+      } catch {
+        rowEl.classList.remove('checked');
+        toast('&#x274C; 操作失败');
+      } finally {
+        toggling = false;
+      }
     }
 
+    // ===================== Delete =====================
     async function deleteTask(id) {
       if (!confirm('确定要删除这个任务吗？')) return;
       try {
         const r = await fetch(API + '/api/tasks/' + id, { method: 'DELETE' });
         if (!r.ok) throw new Error();
-        toast('🗑 任务已删除');
+        toast('&#x1F5D1; 任务已删除');
         loadTasks();
-      } catch { toast('❌ 删除失败'); }
+      } catch { toast('&#x274C; 删除失败'); }
     }
 
     // ===================== Create Modal =====================
@@ -854,18 +893,18 @@
           });
         }
         if (!r.ok) throw new Error();
-        toast(id ? '✏️ 任务已更新' : '✅ 任务已创建');
+        toast(id ? '&#x2712;&#xFE0F; 任务已更新' : '&#x2705; 任务已创建');
         closeModal();
         loadTasks();
       } catch (e) {
-        toast('❌ 保存失败');
+        toast('&#x274C; 保存失败');
       } finally {
         btn.disabled = false;
         btn.textContent = id ? '保存' : '创建任务';
       }
     }
 
-    // Close modal on overlay click
+    // Keyboard + overlay close
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('modal-overlay').addEventListener('click', (e) => {
         if (e.target === e.currentTarget) closeModal();
@@ -879,7 +918,7 @@
     let toastTimer;
     function toast(msg) {
       const el = document.getElementById('toast');
-      el.textContent = msg;
+      el.innerHTML = msg;
       el.classList.add('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
