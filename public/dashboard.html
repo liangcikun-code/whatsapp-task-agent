@@ -341,6 +341,24 @@
       box-shadow: 0 0 0 3px var(--brand-light);
     }
     .field textarea { resize: vertical; min-height: 64px; }
+
+    /* ===== Date Picker Dropdown ===== */
+    .date-picker-dropdown {
+      display: none; position: absolute; z-index: 50;
+      background: var(--surface); border: 1px solid var(--border-strong);
+      border-radius: var(--radius); box-shadow: var(--shadow-lg);
+      padding: 16px; min-width: 240px;
+    }
+    .date-picker-dropdown.show { display: block; }
+    .date-picker-dropdown input[type="date"] {
+      width: 100%; padding: 8px 10px;
+      border: 1px solid var(--border); border-radius: var(--radius-xs);
+      font-size: .85rem; font-family: inherit;
+    }
+    .date-picker-dropdown .dp-actions {
+      display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px;
+    }
+    .dp-actions .btn { padding: 6px 14px; font-size: .75rem; }
     .modal .btn-row {
       display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px;
     }
@@ -470,6 +488,16 @@
 
     <!-- Toast -->
     <div class="toast" id="toast"></div>
+
+    <!-- Date Picker Dropdown -->
+    <div class="date-picker-dropdown" id="date-picker-dd">
+      <label style="display:block;font-size:.7rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.02em">截止日期</label>
+      <input type="date" id="date-picker-input">
+      <div class="dp-actions">
+        <button class="btn btn-ghost btn-sm" onclick="closeDatePicker()">取消</button>
+        <button class="btn btn-primary btn-sm" onclick="saveDatePicker()">确定</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -786,18 +814,50 @@
     }
 
     // ===================== Quick actions =====================
-    async function quickSetDeadline(id) {
-      const val = prompt('截止日期 (YYYY-MM-DD 或 YYYY-MM-DD HH:mm):');
-      if (!val) return;
-      const d = new Date(val);
-      if (isNaN(d.getTime())) { toast('日期格式无效'); return; }
+    let datePickerTaskId = null;
+
+    function showDatePicker(id) {
+      datePickerTaskId = id;
+      const dd = document.getElementById('date-picker-dd');
+      const input = document.getElementById('date-picker-input');
+      // Default to today
+      const today = new Date();
+      input.value = today.toISOString().slice(0, 10);
+      dd.classList.add('show');
+      input.focus();
+    }
+
+    function closeDatePicker() {
+      document.getElementById('date-picker-dd').classList.remove('show');
+      datePickerTaskId = null;
+    }
+
+    async function saveDatePicker() {
+      const id = datePickerTaskId;
+      if (!id) return;
+      const val = document.getElementById('date-picker-input').value;
+      if (!val) { closeDatePicker(); return; }
+      const d = new Date(val + 'T23:59:59');
       try {
-        const r = await fetch(API+'/api/tasks/'+id, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({deadline:d.toISOString()})});
+        const r = await fetch(API + '/api/tasks/' + id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deadline: d.toISOString() }),
+        });
         if (!r.ok) throw new Error();
         toast('截止日期已更新');
+        closeDatePicker();
         loadTasks();
       } catch { toast('更新失败'); }
     }
+
+    // Close date picker on outside click
+    document.addEventListener('click', e => {
+      const dd = document.getElementById('date-picker-dd');
+      if (dd && dd.classList.contains('show') && !dd.contains(e.target) && !e.target.classList.contains('tag-action')) {
+        closeDatePicker();
+      }
+    });
 
     async function quickAddNote(id) {
       const val = prompt('备注:');
