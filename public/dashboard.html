@@ -343,11 +343,16 @@
     .field textarea { resize: vertical; min-height: 64px; }
 
     /* ===== Date Picker Dropdown ===== */
+    .dp-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 140;
+      background: rgba(0,0,0,.2);
+    }
+    .dp-backdrop.show { display: block; }
     .date-picker-dropdown {
       display: none; position: fixed; z-index: 150;
       top: 50%; left: 50%; transform: translate(-50%,-50%);
       background: var(--surface); border: 1px solid var(--border-strong);
-      border-radius: var(--radius); box-shadow: 0 0 0 100vw rgba(0,0,0,.15), 0 8px 32px rgba(0,0,0,.12);
+      border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,.15);
       padding: 24px; min-width: 280px;
     }
     .date-picker-dropdown.show { display: block; }
@@ -491,6 +496,7 @@
     <div class="toast" id="toast"></div>
 
     <!-- Date Picker Dropdown -->
+    <div class="dp-backdrop" id="dp-backdrop"></div>
     <div class="date-picker-dropdown" id="date-picker-dd">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <span style="font-size:.8rem;font-weight:700">截止日期</span>
@@ -822,15 +828,16 @@
 
     function showDatePicker(id) {
       datePickerTaskId = id;
-      const dd = document.getElementById('date-picker-dd');
+      document.getElementById('dp-backdrop').classList.add('show');
+      document.getElementById('date-picker-dd').classList.add('show');
       const input = document.getElementById('date-picker-input');
       const today = new Date();
       input.value = today.toISOString().slice(0, 10);
-      dd.classList.add('show');
       setTimeout(() => input.focus(), 50);
     }
 
     function closeDatePicker() {
+      document.getElementById('dp-backdrop').classList.remove('show');
       document.getElementById('date-picker-dd').classList.remove('show');
       datePickerTaskId = null;
     }
@@ -862,6 +869,11 @@
         }
       };
       document.addEventListener('click', closeOnClick);
+
+    // Close date picker on overlay click
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('dp-backdrop').addEventListener('click', closeDatePicker);
+    });
 
     async function quickAddNote(id) {
       const val = prompt('备注:');
