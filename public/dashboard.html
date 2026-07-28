@@ -769,7 +769,7 @@
                 ? `<span>&#x1F4C5; ${deadlineStr}</span>${isOverdue ? ` <span class="tag tag-overdue">已逾期</span>` : ''}`
                 : (!isDone ? `<span class="tag tag-add-deadline" onclick="event.stopPropagation(); quickSetDeadline('${t.id}')" title="添加截止日期">+ 截止日期</span>` : '')}
               <span>&#x1F550; ${createdStr}</span>
-              ${t.description ? '' : `<span class="tag tag-add-note" onclick="event.stopPropagation(); quickAddNote('${t.id}')" title="添加备注">+ 备注</span>`}
+              ${t.description ? `<span class="task-note" title="${esc(t.description)}">&#x1F4DD; ${esc(t.description)}</span>` : (!isDone ? `<span class="tag tag-add-note" onclick="event.stopPropagation(); quickAddNote('${t.id}')" title="添加备注">+ 备注</span>` : '')}
               <span style="font-family:monospace;font-size:.6875rem;opacity:.5">#${t.id}</span>
               <span class="tag tag-edit" onclick="event.stopPropagation(); openEditModal('${t.id}')" title="编辑">&#x270E; 编辑</span>
             </div>
