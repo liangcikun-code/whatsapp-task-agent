@@ -349,13 +349,15 @@
     .toast {
       position: fixed; bottom: 28px; right: 28px;
       background: var(--text); color: white;
-      padding: 12px 22px; border-radius: var(--radius-sm);
-      font-size: .8rem; font-weight: 600; z-index: 200;
+      padding: 14px 24px; border-radius: var(--radius-sm);
+      font-size: .85rem; font-weight: 600; z-index: 200;
       opacity: 0; transform: translateY(8px);
-      transition: all 250ms ease; pointer-events: none;
+      transition: all 250ms ease; pointer-events: auto;
       box-shadow: var(--shadow-lg);
+      cursor: pointer;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
+    .toast:not(.show) { pointer-events: none; }
 
     /* ===== Empty State ===== */
     .empty {
@@ -695,34 +697,29 @@
     async function toggleTask(id, rowEl) {
       if (toggling) return;
       toggling = true;
-
-      // Determine current state from backend data, not DOM
-      const task = tasks.find(t => t.id === id);
-      if (!task) { toggling = false; return; }
-      const goingToBeDone = task.status === 'pending';
-      const endpoint = goingToBeDone ? 'done' : 'undone';
-
-      // Optimistic DOM update
-      if (goingToBeDone) {
-        rowEl.classList.add('checked');
-        rowEl.querySelector('.custom-check').style.color = '#fff';
-      } else {
-        rowEl.classList.remove('checked');
-      }
-
       try {
-        const r = await fetch(API + '/api/tasks/' + id + '/' + endpoint, { method: 'POST' });
-        if (!r.ok) throw new Error();
-        task.status = goingToBeDone ? 'done' : 'pending'; // update local cache
-        setTimeout(() => loadTasks(), 400);
-      } catch {
-        // Revert DOM on failure
-        if (goingToBeDone) {
-          rowEl.classList.remove('checked');
-        } else {
+        // Always check current state from the DOM
+        const isCurrentlyDone = rowEl.classList.contains('checked');
+        const endpoint = isCurrentlyDone ? 'undone' : 'done';
+
+        // Optimistic DOM update
+        if (!isCurrentlyDone) {
           rowEl.classList.add('checked');
+          rowEl.querySelector('.custom-check').style.color = '#fff';
+        } else {
+          rowEl.classList.remove('checked');
         }
-        toast('操作失败');
+
+        const r = await fetch(API + '/api/tasks/' + id + '/' + endpoint, { method: 'POST' });
+        if (!r.ok) throw new Error((await r.json()).error || 'HTTP ' + r.status);
+        setTimeout(() => loadTasks(), 500);
+      } catch (e) {
+        // Revert
+        const isCurrentlyDone = rowEl.classList.contains('checked');
+        if (!isCurrentlyDone) rowEl.classList.add('checked');
+        else rowEl.classList.remove('checked');
+        console.error('toggle task error:', e);
+        toast('操作失败: ' + (e.message));
       } finally {
         toggling = false;
       }
@@ -815,10 +812,11 @@
       if (val===null) return;
       try {
         const r = await fetch(API+'/api/tasks/'+id, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:val})});
-        if (!r.ok) throw new Error();
+        const data = await r.json();
+        if (!r.ok || data.error) throw new Error(data.error || 'fail');
         toast('备注已添加');
         loadTasks();
-      } catch { toast('添加失败'); }
+      } catch(e) { toast('添加失败: ' + e.message); }
     }
 
     // ===================== Toast =====================
