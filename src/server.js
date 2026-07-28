@@ -10,7 +10,7 @@ import { config } from './config.js';
 import { loadConfig, saveConfig, resetConfig } from './schedule-config.js';
 import {
   createTask, listTasks, getTask, updateTask,
-  completeTask, deleteTask,
+  completeTask, uncompleteTask, deleteTask,
   getStats,
   getWeeklySummary, getMonthlySummary,
   getQuarterSummary, getCurrentYearSummary, getSummaryByDateRange,
@@ -191,6 +191,17 @@ export function createServer(sendToWhatsApp) {
   app.post('/api/tasks/:id/done', async (req, res) => {
     try {
       const task = await completeTask(req.params.id);
+      if (!task) return res.status(404).json({ error: '任务不存在' });
+      res.json(task);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 撤销完成
+  app.post('/api/tasks/:id/undone', async (req, res) => {
+    try {
+      const task = await uncompleteTask(req.params.id);
       if (!task) return res.status(404).json({ error: '任务不存在' });
       res.json(task);
     } catch (err) {

@@ -126,6 +126,18 @@ export async function completeTask(id) {
   return data ? mapTask(data) : null;
 }
 
+export async function uncompleteTask(id) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ status: 'pending', completed_at: null })
+    .or(idOrTag(id))
+    .select()
+    .maybeSingle();
+
+  if (error) throw new Error(`撤销完成失败: ${error.message}`);
+  return data ? mapTask(data) : null;
+}
+
 export async function deleteTask(id) {
   const { error } = await supabase
     .from('tasks')
