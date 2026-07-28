@@ -5,7 +5,6 @@
  * API 接口与之前完全一致（scheduler.js / server.js 无需改动）。
  */
 import { createClient } from '@supabase/supabase-js';
-import { randomBytes } from 'crypto';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek.js';
 import utc from 'dayjs/plugin/utc.js';
@@ -18,8 +17,17 @@ dayjs.extend(utc);
 
 const supabase = createClient(config.supabase.url, config.supabase.anonKey);
 
-function generateTag() {
-  return randomBytes(4).toString('hex'); // 8 字符短 ID
+/** Generate sequential task ID: T-YYYYMMDD-NNN */
+async function generateTag() {
+  const today = dayjs().format('YYYYMMDD');
+  // Count tasks created today
+  const { count, error } = await supabase
+    .from('tasks')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', dayjs().startOf('day').toISOString())
+    .lte('created_at', dayjs().endOf('day').toISOString());
+  const seq = String((count || 0) + 1).padStart(3, '0');
+  return `T-${today}-${seq}`;
 }
 
 // ==================== 任务 CRUD ====================
