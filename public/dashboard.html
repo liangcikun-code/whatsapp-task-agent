@@ -694,20 +694,38 @@
     // ===================== Toggle =====================
     async function toggleTask(id, rowEl) {
       if (toggling) return;
-      const isDone = rowEl.classList.contains('checked');
-      const endpoint = isDone ? 'undone' : 'done';
       toggling = true;
-      if (isDone) rowEl.classList.remove('checked');
-      else { rowEl.classList.add('checked'); rowEl.querySelector('.custom-check').style.color='#fff'; }
+
+      // Determine current state from backend data, not DOM
+      const task = tasks.find(t => t.id === id);
+      if (!task) { toggling = false; return; }
+      const goingToBeDone = task.status === 'pending';
+      const endpoint = goingToBeDone ? 'done' : 'undone';
+
+      // Optimistic DOM update
+      if (goingToBeDone) {
+        rowEl.classList.add('checked');
+        rowEl.querySelector('.custom-check').style.color = '#fff';
+      } else {
+        rowEl.classList.remove('checked');
+      }
+
       try {
-        const r = await fetch(API+'/api/tasks/'+id+'/'+endpoint, {method:'POST'});
+        const r = await fetch(API + '/api/tasks/' + id + '/' + endpoint, { method: 'POST' });
         if (!r.ok) throw new Error();
-        setTimeout(()=>loadTasks(), 400);
+        task.status = goingToBeDone ? 'done' : 'pending'; // update local cache
+        setTimeout(() => loadTasks(), 400);
       } catch {
-        if (isDone) rowEl.classList.add('checked');
-        else rowEl.classList.remove('checked');
+        // Revert DOM on failure
+        if (goingToBeDone) {
+          rowEl.classList.remove('checked');
+        } else {
+          rowEl.classList.add('checked');
+        }
         toast('操作失败');
-      } finally { toggling = false; }
+      } finally {
+        toggling = false;
+      }
     }
 
     // ===================== Delete =====================
