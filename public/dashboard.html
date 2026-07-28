@@ -344,10 +344,11 @@
 
     /* ===== Date Picker Dropdown ===== */
     .date-picker-dropdown {
-      display: none; position: absolute; z-index: 50;
+      display: none; position: fixed; z-index: 150;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
       background: var(--surface); border: 1px solid var(--border-strong);
       border-radius: var(--radius); box-shadow: var(--shadow-lg);
-      padding: 16px; min-width: 240px;
+      padding: 20px; min-width: 260px;
     }
     .date-picker-dropdown.show { display: block; }
     .date-picker-dropdown input[type="date"] {
@@ -681,7 +682,7 @@
         meta += `<span>${deadlineStr}</span>`;
         if (isOverdue) meta += `<span class="tag tag-overdue">逾期</span>`;
       } else if (!isDone) {
-        meta += `<span class="tag tag-action" onclick="event.stopPropagation();quickSetDeadline('${t.id}')">+ 截止日</span>`;
+        meta += `<span class="tag tag-action" onclick="event.stopPropagation();showDatePicker('${t.id}')">+ 截止日</span>`;
       }
       meta += `<span>${createdStr}</span>`;
       if (t.description) {
@@ -820,11 +821,10 @@
       datePickerTaskId = id;
       const dd = document.getElementById('date-picker-dd');
       const input = document.getElementById('date-picker-input');
-      // Default to today
       const today = new Date();
       input.value = today.toISOString().slice(0, 10);
       dd.classList.add('show');
-      input.focus();
+      setTimeout(() => input.focus(), 50);
     }
 
     function closeDatePicker() {
@@ -846,16 +846,16 @@
         });
         if (!r.ok) throw new Error();
         toast('截止日期已更新');
-        closeDatePicker();
-        loadTasks();
       } catch { toast('更新失败'); }
+      closeDatePicker();
+      loadTasks();
     }
 
-    // Close date picker on outside click
-    document.addEventListener('click', e => {
-      const dd = document.getElementById('date-picker-dd');
-      if (dd && dd.classList.contains('show') && !dd.contains(e.target) && !e.target.classList.contains('tag-action')) {
-        closeDatePicker();
+    // Close on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        const dd = document.getElementById('date-picker-dd');
+        if (dd && dd.classList.contains('show')) closeDatePicker();
       }
     });
 
