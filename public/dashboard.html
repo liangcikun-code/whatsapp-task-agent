@@ -851,13 +851,14 @@
       loadTasks();
     }
 
-    // Close on Escape
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
+      // Close on click outside
+      const closeOnClick = e => {
         const dd = document.getElementById('date-picker-dd');
-        if (dd && dd.classList.contains('show')) closeDatePicker();
-      }
-    });
+        if (dd && dd.classList.contains('show') && !dd.contains(e.target)) {
+          closeDatePicker();
+        }
+      };
+      document.addEventListener('click', closeOnClick);
 
     async function quickAddNote(id) {
       const val = prompt('备注:');
