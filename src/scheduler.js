@@ -8,7 +8,6 @@ import cron from 'node-cron';
 import { config } from './config.js';
 import { listTasks, getDailySummary, getWeeklySummary, getMonthlySummary } from './task-store.js';
 import { loadConfig } from './schedule-config.js';
-import { loadConfig } from './schedule-config.js';
 
 let sendFn = null;
 
