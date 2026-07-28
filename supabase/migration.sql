@@ -6,7 +6,7 @@
 -- 任务表
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tag VARCHAR(8) NOT NULL,                     -- 短ID，供用户在 WhatsApp 中引用
+  tag VARCHAR(16) NOT NULL,                     -- 短ID，供用户在 WhatsApp 中引用
   title TEXT NOT NULL,
   description TEXT DEFAULT ''::text,
   priority TEXT CHECK (priority IN ('high', 'medium', 'low')) DEFAULT 'medium'::text,
