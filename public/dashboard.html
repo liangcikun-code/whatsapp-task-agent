@@ -810,25 +810,29 @@
     async function toggleTask(id, rowEl) {
       if (toggling) return;
       const isCurrentlyDone = rowEl.classList.contains('checked');
+      const endpoint = isCurrentlyDone ? 'undone' : 'done';
+
+      toggling = true;
 
       // Optimistic UI
-      toggling = true;
       if (isCurrentlyDone) {
-        // Can't un-complete via this UI — use tab switch to see completed
-        toggling = false;
-        return;
+        rowEl.classList.remove('checked');
+      } else {
+        rowEl.classList.add('checked');
+        rowEl.querySelector('.custom-check').style.color = '#fff';
       }
 
-      rowEl.classList.add('checked');
-      rowEl.querySelector('.custom-check').style.color = '#fff';
-
       try {
-        const r = await fetch(API + '/api/tasks/' + id + '/done', { method: 'POST' });
+        const r = await fetch(API + '/api/tasks/' + id + '/' + endpoint, { method: 'POST' });
         if (!r.ok) throw new Error();
-        // Brief toast then reload
         setTimeout(() => { loadTasks(); }, 400);
       } catch {
-        rowEl.classList.remove('checked');
+        // Revert optimistic UI
+        if (isCurrentlyDone) {
+          rowEl.classList.add('checked');
+        } else {
+          rowEl.classList.remove('checked');
+        }
         toast('&#x274C; 操作失败');
       } finally {
         toggling = false;
