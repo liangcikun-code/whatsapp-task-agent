@@ -76,11 +76,20 @@ export async function listTasks({ status, priority, sortBy } = {}) {
   return tasks;
 }
 
+function isUUID(s) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
+/** Build a where clause matching either UUID id or short tag */
+function idOrTag(id) {
+  return isUUID(id) ? `id.eq.${id},tag.eq.${id}` : `tag.eq.${id}`;
+}
+
 export async function getTask(id) {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
-    .or(`id.eq.${id},tag.eq.${id}`)
+    .or(idOrTag(id))
     .maybeSingle();
 
   if (error) throw new Error(`查询任务失败: ${error.message}`);
@@ -97,7 +106,7 @@ export async function updateTask(id, updates) {
   const { data, error } = await supabase
     .from('tasks')
     .update(set)
-    .or(`id.eq.${id},tag.eq.${id}`)
+    .or(idOrTag(id))
     .select()
     .maybeSingle();
 
@@ -109,7 +118,7 @@ export async function completeTask(id) {
   const { data, error } = await supabase
     .from('tasks')
     .update({ status: 'done', completed_at: new Date().toISOString() })
-    .or(`id.eq.${id},tag.eq.${id}`)
+    .or(idOrTag(id))
     .select()
     .maybeSingle();
 
@@ -121,7 +130,7 @@ export async function deleteTask(id) {
   const { error } = await supabase
     .from('tasks')
     .delete()
-    .or(`id.eq.${id},tag.eq.${id}`);
+    .or(idOrTag(id));
 
   if (error) throw new Error(`删除任务失败: ${error.message}`);
   return true;
