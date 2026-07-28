@@ -697,29 +697,22 @@
     async function toggleTask(id, rowEl) {
       if (toggling) return;
       toggling = true;
+      const isDone = rowEl.classList.contains('checked');
+      const endpoint = isDone ? 'undone' : 'done';
+
+      // Optimistic UI
+      if (isDone) rowEl.classList.remove('checked');
+      else { rowEl.classList.add('checked'); rowEl.querySelector('.custom-check').style.color='#fff'; }
+
       try {
-        // Always check current state from the DOM
-        const isCurrentlyDone = rowEl.classList.contains('checked');
-        const endpoint = isCurrentlyDone ? 'undone' : 'done';
-
-        // Optimistic DOM update
-        if (!isCurrentlyDone) {
-          rowEl.classList.add('checked');
-          rowEl.querySelector('.custom-check').style.color = '#fff';
-        } else {
-          rowEl.classList.remove('checked');
-        }
-
-        const r = await fetch(API + '/api/tasks/' + id + '/' + endpoint, { method: 'POST' });
-        if (!r.ok) throw new Error((await r.json()).error || 'HTTP ' + r.status);
-        setTimeout(() => loadTasks(), 500);
-      } catch (e) {
-        // Revert
-        const isCurrentlyDone = rowEl.classList.contains('checked');
-        if (!isCurrentlyDone) rowEl.classList.add('checked');
+        const r = await fetch(API+'/api/tasks/'+id+'/'+endpoint, {method:'POST'});
+        if (!r.ok) throw new Error('HTTP '+r.status);
+        setTimeout(()=>loadTasks(), 500);
+      } catch(e) {
+        if (isDone) rowEl.classList.add('checked');
         else rowEl.classList.remove('checked');
-        console.error('toggle task error:', e);
-        toast('操作失败: ' + (e.message));
+        console.error('toggle error:', e);
+        toast('操作失败，请刷新重试');
       } finally {
         toggling = false;
       }
