@@ -121,6 +121,8 @@ export async function updateTask(id, updates) {
   if (updates.description !== undefined) set.description = updates.description;
   if (updates.priority !== undefined) set.priority = validatePriority(updates.priority);
   if (updates.deadline !== undefined) set.deadline = updates.deadline || null;
+  if (updates.sourceName !== undefined) set.source_name = updates.sourceName || '';
+  if (updates.sourceChat !== undefined) set.source_chat = updates.sourceChat || '';
 
   const { data, error } = await supabase
     .from('tasks')
@@ -302,7 +304,7 @@ function mapTask(row) {
     status: row.status,
     source: row.source,
     sourceChat: row.source_chat || '',
-    sourceName: row.source_name || (row.source_chat ? row.source_chat : ''),
+    sourceName: row.source_name || '',
     deadline: row.deadline || null,
     createdAt: row.created_at,
     completedAt: row.completed_at,
