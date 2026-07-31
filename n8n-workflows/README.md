@@ -104,7 +104,7 @@ return {
 {
   "model": "deepseek-chat",
   "messages": [
-    {"role": "system", "content": "分析消息意图，仅返回JSON: {"action": "create|query|complete|summary", "title": "...", "priority": "high|medium|low", "deadline": "..."}"},
+    {"role": "system", "content": "你是一个任务提取助手。分析用户的消息，提取其中的任务信息。返回纯JSON，不要markdown包裹。JSON格式: {\"action\":\"create|query|complete|summary\",\"title\":\"任务标题\",\"priority\":\"high|medium|low\",\"deadline\":\"截止日期ISO格式或null\",\"description\":\"备注说明或null\"}。如果消息不是任务相关的，action设为\"ignore\"。"},
     {"role": "user", "content": "{{message}}"}
   ],
   "temperature": 0.1
@@ -122,7 +122,7 @@ action = summary → 节点 5d
 **节点 5a — HTTP Request (创建任务)**
 - Method: POST
 - URL: `http://task-api:3000/api/tasks`
-- Body: `{"title": "{{title}}", "priority": "{{priority}}", "deadline": "{{deadline}}", "source": "whatsapp", "sourceChat": "{{phone}}"}`
+- Body: `{"title": "{{title}}", "priority": "{{priority}}", "deadline": "{{deadline}}", "description": "{{description}}", "source": "whatsapp", "sourceChat": "{{phone}}", "sourceName": "{{fromName}}"}`
 
 **节点 5b — HTTP Request (查询任务)**
 - Method: GET
