@@ -7,9 +7,9 @@
  *   PROXY_URL=http://127.0.0.1:7897 node src/bridge-pairing.js
  */
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
-import { HttpsProxyAgent } from 'hpagent';
-import axios from 'axios';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import qrcode from 'qrcode-terminal';
+import axios from 'axios';
 import readline from 'readline';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -35,18 +35,9 @@ console.log(`   📡 轮询: ${POLL_INTERVAL}ms\n`);
 // ==================== 代理 ====================
 let proxyAgent = null;
 if (PROXY_URL) {
-  // Neither SOCKS5 nor HTTPS proxy worked. Try Baileys built-in proxy support.
-  // Baileys accepts agent config under 'agent' key.
-  // HTTP CONNECT via hpagent HttpsProxyAgent
-  try {
-    proxyAgent = new HttpsProxyAgent({
-      proxy: PROXY_URL,
-      keepAlive: true,
-      keepAliveMsecs: 1000,
-    });
-  } catch (err) {
-    console.error('[proxy] 创建代理失败:', err.message);
-  }
+  // 把 http://127.0.0.1:7897 → socks://127.0.0.1:7897
+  const socksUrl = PROXY_URL.replace(/^http/, 'socks');
+  proxyAgent = new SocksProxyAgent(socksUrl);
 }
 
 // ==================== 输入手机号 ====================
@@ -96,26 +87,17 @@ async function connectWhatsApp(phoneNumber) {
   const logger = { level: 'warn', info() {}, warn() {}, error() {}, trace() {}, debug() {} };
   logger.child = () => logger;
 
-  let retries = 0;
-
-  function makeSocket() {
-    const opts = {
-      auth: state,
-      syncFullHistory: false,
-      markOnlineOnConnect: true,
-      connectTimeoutMs: 60000,
-      qrTimeout: 60000,
-      logger,
-    };
-    if (proxyAgent) opts.agent = proxyAgent;
-
-    sock = makeWASocket(opts);
-  }
-
-  makeSocket();
+  sock = makeWASocket({
+    auth: state,
+    ...(proxyAgent ? { agent: proxyAgent } : {}),
+    syncFullHistory: false,
+    markOnlineOnConnect: true,
+    connectTimeoutMs: 60000,
+    qrTimeout: 60000,
+    logger,
+  });
 
   let pairingRequested = false;
-  let hadOpen = false;
 
   sock.ev.on('connection.update', async ({ qr, connection, lastDisconnect, isNewLogin }) => {
     if (qr) {
@@ -142,17 +124,7 @@ async function connectWhatsApp(phoneNumber) {
       }, 5000);
     }
 
-    // 401 或 403 = auth expired/invalid
-    if (connection === 'close' && !hadOpen) {
-      const errMsg = lastDisconnect?.error?.message || '';
-      const code = lastDisconnect?.error?.output?.statusCode;
-      if (code === 401 || code === 403 || errMsg.includes('401') || errMsg.includes('403')) {
-        console.log('[whatsapp] ⚠️ 认证过期，需要重新登录。删除 data/auth/ 重试。');
-      }
-    }
-
     if (connection === 'open') {
-      hadOpen = true;
       console.log(`✅ WhatsApp 已连接! 号码: ${sock.user?.id?.split(':')[0] || '未知'}`);
     }
 
@@ -162,7 +134,7 @@ async function connectWhatsApp(phoneNumber) {
         ? err.output.statusCode
         : (err?.message?.includes('405') ? 405 : undefined);
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-      console.log(`[whatsapp] 断开 (code=${statusCode || err?.message || '?'})，${shouldReconnect ? '10s后重连...' : '已登出'}`);
+      console.log(`[whatsapp] 断开 (${statusCode})，${shouldReconnect ? '10s后重连...' : '已登出'}`);
       if (shouldReconnect) setTimeout(() => connectWhatsApp(phoneNumber), 10000);
     }
   });
