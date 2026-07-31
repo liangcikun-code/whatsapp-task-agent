@@ -7,6 +7,7 @@
  *   PROXY_URL=http://127.0.0.1:7897 node src/bridge-pairing.js
  */
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import { HttpsProxyAgent } from 'hpagent';
 import qrcode from 'qrcode-terminal';
 import axios from 'axios';
 import readline from 'readline';
@@ -32,8 +33,11 @@ if (PROXY_URL) console.log(`   🔒 代理: ${PROXY_URL}`);
 console.log(`   📡 轮询: ${POLL_INTERVAL}ms\n`);
 
 // ==================== 代理 ====================
-// 已移除 SOCKS5 proxy — Clash 不支持 Baileys WebSocket 握手
 let proxyAgent = null;
+if (PROXY_URL) {
+  proxyAgent = new HttpsProxyAgent({ proxy: PROXY_URL });
+  console.log(`   🔒 已设置代理: ${PROXY_URL}`);
+}
 
 // ==================== 输入手机号 ====================
 function askPhone() {
@@ -88,6 +92,7 @@ async function connectWhatsApp(phoneNumber) {
     markOnlineOnConnect: true,
     connectTimeoutMs: 60000,
     qrTimeout: 60000,
+    agent: proxyAgent,
     logger,
   });
 
@@ -96,39 +101,25 @@ async function connectWhatsApp(phoneNumber) {
   sock.ev.on('connection.update', async ({ qr, connection, lastDisconnect, isNewLogin }) => {
     if (qr) {
       qrcode.generate(qr, { small: true });
-      console.log('\n📱 或扫描上方 QR 码登录');
-    }
-
-    // When the socket first connects and we haven't logged in yet,
-    // request a pairing code via the WhatsApp protocol
-    if (connection === 'connecting' && phoneNumber && !state.creds?.me?.id && !pairingRequested) {
-      pairingRequested = true;
-      // Wait a bit for the WebSocket to fully establish
-      console.log('[whatsapp] 🔗 正在建立连接，稍后请求配对码...');
-      setTimeout(async () => {
-        try {
-          const code = await sock.requestPairingCode(phoneNumber);
-          console.log(`\n📲 配对码: ${code}`);
-          console.log('   请在手机 WhatsApp 中输入此 8 位配对码');
-          console.log('   WhatsApp → 设置 → 已关联设备 → 通过配对码关联\n');
-        } catch (err) {
-          console.error('请求配对码失败:', err.message);
-          console.log('   如果看到 QR 码，可以用 QR 扫码方式登录\n');
-        }
-      }, 5000);
+      console.log('\n📱 请用 WhatsApp 扫描上方 QR 码');
+      console.log('   WhatsApp → 设置 → 已关联设备 → 扫码关联\n');
     }
 
     if (connection === 'open') {
-      console.log(`✅ WhatsApp 已连接! 号码: ${sock.user?.id?.split(':')[0] || '未知'}`);
+      const me = sock.user?.id?.split(':')[0];
+      if (me) console.log(`✅ WhatsApp 已连接! 号码: ${me}`);
     }
 
     if (connection === 'close') {
       const err = lastDisconnect?.error;
-      const statusCode = typeof err?.output?.statusCode === 'number'
-        ? err.output.statusCode
-        : (err?.message?.includes('405') ? 405 : undefined);
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-      console.log(`[whatsapp] 断开 (${statusCode})，${shouldReconnect ? '10s后重连...' : '已登出'}`);
+      let code = err?.output?.statusCode || 500;
+      // Don't reconnect on 405 — it means auth failed (device limit/mismatch)
+      if (code === 405) {
+        console.log('[whatsapp] ⚠️ 405 鉴权失败 — 检查是否超过4个设备，或删除 data/ 重试');
+        return;
+      }
+      const shouldReconnect = code !== DisconnectReason.loggedOut;
+      console.log(`[whatsapp] 断开 (${code})，${shouldReconnect ? '10s后重连...' : '已登出'}`);
       if (shouldReconnect) setTimeout(() => connectWhatsApp(phoneNumber), 10000);
     }
   });
