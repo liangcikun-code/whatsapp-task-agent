@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Task Agent — Status</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    background:#f8f9fb;color:#111113;line-height:1.5;min-height:100vh;
+    display:grid;place-items:center;padding:32px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .card{
+    background:#fff;border:1px solid #eaeaed;border-radius:16px;
+    box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06);
+    padding:40px;max-width:720px;width:100%;
+  }
+  h1{font-size:1.3rem;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px}
+  .subtitle{font-size:.8rem;color:#8e8e93;margin-bottom:28px}
+
+  .section{margin-bottom:24px}
+  .section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8e8e93;margin-bottom:10px}
+
+  .row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:#f8f9fb;margin-bottom:6px}
+  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .dot.green{background:#059669;box-shadow:0 0 0 4px #d1fae5}
+  .dot.amber{background:#d97706;box-shadow:0 0 0 4px #fef3c7}
+  .row-label{flex:1;font-size:.85rem;font-weight:500}
+  .row-badge{font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:100px}
+  .badge-ok{background:#d1fae5;color:#059669}
+  .badge-warn{background:#fef3c7;color:#b45309}
+
+  .feature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+  .feature{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:#f8f9fb;font-size:.82rem}
+  .feature .check{color:#059669;font-weight:700;flex-shrink:0}
+
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:14px 18px;border-radius:10px;background:#f8f9fb}
+  .flow-node{background:#fff;border:1px solid #eaeaed;border-radius:8px;padding:8px 14px;font-size:.78rem;font-weight:600;color:#111113;white-space:nowrap}
+  .flow-arrow{color:#d4d4d8;font-size:.85rem;font-weight:600}
+  .link{color:#2563eb;text-decoration:none;font-size:.8rem;font-weight:500}
+  .link:hover{text-decoration:underline}
+  .url{font-family:'SF Mono','Fira Code',monospace;font-size:.72rem;color:#6e6e73;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>WhatsApp Task Agent — Status</h1>
+  <p class="subtitle">2026-07-31 &nbsp;·&nbsp; Railway Cloud (resplendent-heart)</p>
+
+  <div class="section">
+    <div class="section-title">在线服务</div>
+    <div class="row">
+      <div class="dot green"></div>
+      <div class="row-label">API Server</div>
+      <div><span class="row-badge badge-ok">200</span></div>
+    </div>
+    <div class="row">
+      <div class="dot green"></div>
+      <div class="row-label">Web Dashboard</div>
+      <div><span class="row-badge badge-ok">200</span></div>
+    </div>
+    <div class="row">
+      <div class="dot green"></div>
+      <div class="row-label">n8n Automation</div>
+      <div><span class="row-badge badge-ok">200</span></div>
+    </div>
+    <div class="row">
+      <div class="dot amber"></div>
+      <div class="row-label">WhatsApp Bridge (本地)</div>
+      <div><span class="row-badge badge-warn">需 VPN</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Dashboard 功能状态 · 9/9 验证通过</div>
+    <div class="feature-grid">
+      <div class="feature"><span class="check">✓</span> 来源字段 (sourceName)</div>
+      <div class="feature"><span class="check">✓</span> 日期选择器 (弹窗日历)</div>
+      <div class="feature"><span class="check">✓</span> 蓝色主题</div>
+      <div class="feature"><span class="check">✓</span> Toggle 完成/撤销</div>
+      <div class="feature"><span class="check">✓</span> 编辑弹窗</div>
+      <div class="feature"><span class="check">✓</span> 备注添加</div>
+      <div class="feature"><span class="check">✓</span> 5位递增任务ID</div>
+      <div class="feature"><span class="check">✓</span> 优先级分组</div>
+      <div class="feature"><span class="check">✓</span> sourceName fallback</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">系统架构</div>
+    <div class="flow">
+      <div class="flow-node">WhatsApp</div><span class="flow-arrow">→</span>
+      <div class="flow-node" style="border-color:#d4d4d8;color:#8e8e93">Bridge</div><span class="flow-arrow">→</span>
+      <div class="flow-node">Railway API</div><span class="flow-arrow">→</span>
+      <div class="flow-node">n8n</div><span class="flow-arrow">→</span>
+      <div class="flow-node">DeepSeek AI</div><span class="flow-arrow">→</span>
+      <div class="flow-node">Supabase</div><span class="flow-arrow">→</span>
+      <div class="flow-node">Dashboard</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">链接</div>
+    <div style="display:grid;gap:8px">
+      <div>
+        <a class="link" href="https://task-api-production-785e.up.railway.app/dashboard.html">Dashboard →</a>
+        <div class="url">task-api-production-785e.up.railway.app/dashboard.html</div>
+      </div>
+      <div>
+        <a class="link" href="https://n8n-production-581c2.up.railway.app">n8n →</a>
+        <div class="url">n8n-production-581c2.up.railway.app</div>
+      </div>
+      <div>
+        <a class="link" href="https://github.com/liangcikun-code/whatsapp-task-agent">GitHub →</a>
+        <div class="url">github.com/liangcikun-code/whatsapp-task-agent</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
