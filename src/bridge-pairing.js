@@ -145,11 +145,12 @@ async function connectWhatsApp(phoneNumber) {
 
       const phone = msg.key.remoteJid;
       const sender = phone.split('@')[0];
-      console.log(`[whatsapp] 📩 ${sender}: ${text.slice(0, 80)}`);
+      const pushName = msg.pushName || '';
+      console.log(`[whatsapp] 📩 ${sender}${pushName ? ' (' + pushName + ')' : ''}: ${text.slice(0, 80)}`);
 
       try {
         await axios.post(`${API_URL}/api/messages/incoming`, {
-          from: sender, to: phone, message: text,
+          from: sender, to: phone, message: text, pushName,
         }, { timeout: 30000 });
       } catch (err) {
         // ignore

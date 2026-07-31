@@ -82,12 +82,12 @@ export function createServer(sendToWhatsApp) {
   // ==================== WhatsApp 消息接收 ====================
   // 本地 bridge 把收到的 WhatsApp 消息转发到此
   app.post('/api/messages/incoming', async (req, res) => {
-    const { from: sender, to: phone, message: text } = req.body;
+    const { from: sender, to: phone, message: text, pushName } = req.body;
     if (!sender || !text) {
       return res.status(400).json({ error: 'from 和 message 必填' });
     }
 
-    console.log(`[server] 📩 收到消息 ${sender}: ${text.slice(0, 80)}`);
+    console.log(`[server] 📩 收到消息 ${sender}${pushName ? ' (' + pushName + ')' : ''}: ${text.slice(0, 80)}`);
 
     // 转发到 n8n
     if (config.n8nWebhookUrl) {
@@ -97,6 +97,7 @@ export function createServer(sendToWhatsApp) {
           phone: sender,
           jid: phone || sender,
           message: text,
+          pushName: pushName || '',
         }, { timeout: 30000 });
         console.log('[server] 已转发到 n8n');
       } catch (err) {

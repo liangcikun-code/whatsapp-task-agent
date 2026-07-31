@@ -16,7 +16,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst phone = body.phone || '';\nconst message = body.message || '';\n// Normalize phone — remove @s.whatsapp.net suffix\nconst cleanPhone = phone.split('@')[0];\nreturn {\n  phone: cleanPhone,\n  rawPhone: phone,\n  message: message\n};"
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst phone = body.phone || '';\nconst message = body.message || '';\nconst pushName = body.pushName || '';\n// Normalize phone — remove @s.whatsapp.net suffix\nconst cleanPhone = phone.split('@')[0];\nreturn {\n  phone: cleanPhone,\n  rawPhone: phone,\n  message: message,\n  pushName: pushName\n};"
       },
       "id": "code-extract",
       "name": "提取消息",
@@ -51,7 +51,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json;\n// DeepSeek returns { choices: [{ message: { content: \"...\" } }] }\nlet content = '';\ntry {\n  const parsed = JSON.parse(raw);\n  content = parsed.choices?.[0]?.message?.content || '';\n} catch { content = ''; }\n\n// Parse the AI response\nlet action = 'ignore', title = '', priority = 'medium', deadline = null, description = null;\ntry {\n  // Clean markdown fences if any\n  content = content.replace(/```json/g, '').replace(/```/g, '').trim();\n  const ai = JSON.parse(content);\n  action = ai.action || 'ignore';\n  title = ai.title || '';\n  priority = ai.priority || 'medium';\n  deadline = ai.deadline || null;\n  description = ai.description || null;\n} catch(e) {}\n\nconst phone = $('提取消息').first().json.phone;\nreturn { action, title, priority, deadline, description, phone };\n"
+        "jsCode": "const raw = $input.first().json;\n// DeepSeek returns { choices: [{ message: { content: \"...\" } }] }\nlet content = '';\ntry {\n  const parsed = JSON.parse(raw);\n  content = parsed.choices?.[0]?.message?.content || '';\n} catch { content = ''; }\n\n// Parse the AI response\nlet action = 'ignore', title = '', priority = 'medium', deadline = null, description = null;\ntry {\n  // Clean markdown fences if any\n  content = content.replace(/```json/g, '').replace(/```/g, '').trim();\n  const ai = JSON.parse(content);\n  action = ai.action || 'ignore';\n  title = ai.title || '';\n  priority = ai.priority || 'medium';\n  deadline = ai.deadline || null;\n  description = ai.description || null;\n} catch(e) {}\n\nconst meta = $('提取消息').first().json;\nconst phone = meta.phone;\nreturn { action, title, priority, deadline, description, phone };\n"
       },
       "id": "code-parse-ai",
       "name": "解析 AI 回复",
@@ -83,7 +83,7 @@
         "url": "https://task-api-production-785e.up.railway.app/api/tasks",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\n  \"title\": \"{{ $json.title }}\",\n  \"priority\": \"{{ $json.priority }}\",\n  \"deadline\": {{ JSON.stringify($json.deadline) }},\n  \"description\": {{ JSON.stringify($json.description) }},\n  \"source\": \"whatsapp\",\n  \"sourceChat\": \"{{ $json.phone }}\",\n  \"sourceName\": \"{{ $json.fromName || $json.phone }}\"\n}",
+        "jsonBody": "{\n  \"title\": \"{{ $json.title }}\",\n  \"priority\": \"{{ $json.priority }}\",\n  \"deadline\": {{ JSON.stringify($json.deadline) }},\n  \"description\": {{ JSON.stringify($json.description) }},\n  \"source\": \"whatsapp\",\n  \"sourceChat\": \"{{ $json.phone }}\",\n  \"sourceName\": \"{{ $('提取消息').first().json.pushName || $json.phone }}\"\n}",
         "options": {}
       },
       "id": "create-task",
