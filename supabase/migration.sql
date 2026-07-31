@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   priority_order SMALLINT DEFAULT 2,           -- 排序权重: high=3, medium=2, low=1
   status TEXT CHECK (status IN ('pending', 'done')) DEFAULT 'pending'::text,
   source TEXT DEFAULT 'whatsapp'::text,
-  source_chat TEXT DEFAULT ''::text,
+  source_name TEXT DEFAULT ''::text,              -- 发消息的人名/群名
+  source_chat TEXT DEFAULT ''::text,               -- 聊天ID (phone/JID)
   deadline TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   completed_at TIMESTAMPTZ

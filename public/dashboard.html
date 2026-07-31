@@ -694,6 +694,10 @@
         meta += `<span class="tag tag-action" onclick="event.stopPropagation();showDatePicker('${t.id}')">+ 截止日</span>`;
       }
       meta += `<span>${createdStr}</span>`;
+      if (t.sourceChat || t.sourceName) {
+        const label = t.sourceName || t.sourceChat;
+        meta += `<span style="color:var(--text-tertiary);font-size:.68rem">${esc(label)}</span>`;
+      }
       if (t.description) {
         meta += `<span class="task-note" title="${esc(t.description)}">${esc(t.description)}</span>`;
       } else if (!isDone) {

@@ -28,7 +28,7 @@ async function generateTag() {
 
 // ==================== 任务 CRUD ====================
 
-export async function createTask({ title, description, priority, deadline, source, sourceChat }) {
+export async function createTask({ title, description, priority, deadline, source, sourceChat, sourceName }) {
   const tag = await generateTag();
   const { data, error } = await supabase
     .from('tasks')
@@ -39,6 +39,7 @@ export async function createTask({ title, description, priority, deadline, sourc
       priority: validatePriority(priority),
       source: source || 'whatsapp',
       source_chat: sourceChat || '',
+      source_name: sourceName || '',
       deadline: deadline || null,
     })
     .select()
@@ -287,6 +288,7 @@ function mapTask(row) {
     status: row.status,
     source: row.source,
     sourceChat: row.source_chat || '',
+    sourceName: row.source_name || '',
     deadline: row.deadline || null,
     createdAt: row.created_at,
     completedAt: row.completed_at,

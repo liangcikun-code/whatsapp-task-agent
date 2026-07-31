@@ -115,10 +115,10 @@ export function createServer(sendToWhatsApp) {
 
   // 创建任务
   app.post('/api/tasks', async (req, res) => {
-    const { title, description, priority, deadline, source, sourceChat } = req.body;
+    const { title, description, priority, deadline, source, sourceChat, sourceName } = req.body;
     if (!title) return res.status(400).json({ error: 'title 必填' });
     try {
-      const task = await createTask({ title, description, priority, deadline, source, sourceChat });
+      const task = await createTask({ title, description, priority, deadline, source, sourceChat, sourceName });
       res.status(201).json(task);
     } catch (err) {
       res.status(500).json({ error: err.message });
