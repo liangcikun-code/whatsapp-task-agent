@@ -35,13 +35,18 @@ console.log(`   📡 轮询: ${POLL_INTERVAL}ms\n`);
 // ==================== 代理 ====================
 let proxyAgent = null;
 if (PROXY_URL) {
-  // HttpsProxyAgent for Baileys websocket
-  const url = new URL(PROXY_URL);
-  proxyAgent = new HttpsProxyAgent({
-    proxy: PROXY_URL,
-    keepAlive: true,
-    keepAliveMsecs: 1000,
-  });
+  // Neither SOCKS5 nor HTTPS proxy worked. Try Baileys built-in proxy support.
+  // Baileys accepts agent config under 'agent' key.
+  // HTTP CONNECT via hpagent HttpsProxyAgent
+  try {
+    proxyAgent = new HttpsProxyAgent({
+      proxy: PROXY_URL,
+      keepAlive: true,
+      keepAliveMsecs: 1000,
+    });
+  } catch (err) {
+    console.error('[proxy] 创建代理失败:', err.message);
+  }
 }
 
 // ==================== 输入手机号 ====================
@@ -91,15 +96,23 @@ async function connectWhatsApp(phoneNumber) {
   const logger = { level: 'warn', info() {}, warn() {}, error() {}, trace() {}, debug() {} };
   logger.child = () => logger;
 
-  sock = makeWASocket({
-    auth: state,
-    ...(proxyAgent ? { agent: proxyAgent } : {}),
-    syncFullHistory: false,
-    markOnlineOnConnect: true,
-    connectTimeoutMs: 60000,
-    qrTimeout: 60000,
-    logger,
-  });
+  let retries = 0;
+
+  function makeSocket() {
+    const opts = {
+      auth: state,
+      syncFullHistory: false,
+      markOnlineOnConnect: true,
+      connectTimeoutMs: 60000,
+      qrTimeout: 60000,
+      logger,
+    };
+    if (proxyAgent) opts.agent = proxyAgent;
+
+    sock = makeWASocket(opts);
+  }
+
+  makeSocket();
 
   let pairingRequested = false;
   let hadOpen = false;
