@@ -35,8 +35,13 @@ console.log(`   📡 轮询: ${POLL_INTERVAL}ms\n`);
 // ==================== 代理 ====================
 let proxyAgent = null;
 if (PROXY_URL) {
-  // Use HTTP CONNECT proxy (works with Clash/mihomo mixed port)
-  proxyAgent = new HttpsProxyAgent({ proxy: PROXY_URL });
+  // HttpsProxyAgent for Baileys websocket
+  const url = new URL(PROXY_URL);
+  proxyAgent = new HttpsProxyAgent({
+    proxy: PROXY_URL,
+    keepAlive: true,
+    keepAliveMsecs: 1000,
+  });
 }
 
 // ==================== 输入手机号 ====================
