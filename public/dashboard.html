@@ -698,9 +698,14 @@
         meta += `<span class="tag tag-action" onclick="event.stopPropagation();showDatePicker('${t.id}')">+ 截止日</span>`;
       }
       meta += `<span>${createdStr}</span>`;
-      if (t.sourceChat || t.sourceName) {
-        const label = t.sourceName || t.sourceChat;
-        meta += `<span style="color:var(--text-tertiary);font-size:.68rem">${esc(label)}</span>`;
+      // 来源：优先显示 name，有 phone 时追加显示
+      if (t.sourceName || t.sourceChat) {
+        const parts = [];
+        if (t.sourceName && t.sourceName !== t.sourceChat) parts.push(esc(t.sourceName));
+        if (t.sourceChat) parts.push(esc(t.sourceChat));
+        if (parts.length > 0) {
+          meta += `<span style="color:var(--text-tertiary);font-size:.68rem">${parts.join(' / ')}</span>`;
+        }
       }
       if (t.description) {
         meta += `<span class="task-note" title="${esc(t.description)}">${esc(t.description)}</span>`;
