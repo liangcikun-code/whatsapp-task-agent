@@ -39,8 +39,19 @@ export async function createTask({ title, description, priority, deadline, sourc
     source_chat: sourceChat || '',
     deadline: deadline || null,
   };
+  // source_name column may not exist — fall back to storing in description
   if (sourceName) {
-    try { insertData.source_name = sourceName; } catch (_) { /* ignore */ }
+    try {
+      const { error: testErr } = await supabase.from('tasks').select('source_name').limit(1);
+      if (!testErr) {
+        insertData.source_name = sourceName;
+      } else {
+        // Column missing — prepend sourceName to description
+        insertData.description = `[来自: ${sourceName}] ${insertData.description || ''}`.trim();
+      }
+    } catch (_) {
+      insertData.description = `[来自: ${sourceName}] ${insertData.description || ''}`.trim();
+    }
   }
   const { data, error } = await supabase
     .from('tasks')
