@@ -9,7 +9,7 @@
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpsProxyAgent } from 'hpagent';
-import readline from 'readline';
+import axios from 'axios';
 import axios from 'axios';
 import readline from 'readline';
 import { join, dirname } from 'path';
