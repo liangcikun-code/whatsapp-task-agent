@@ -7,10 +7,9 @@
  *   PROXY_URL=http://127.0.0.1:7897 node src/bridge-pairing.js
  */
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpsProxyAgent } from 'hpagent';
 import axios from 'axios';
-import axios from 'axios';
+import qrcode from 'qrcode-terminal';
 import readline from 'readline';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
