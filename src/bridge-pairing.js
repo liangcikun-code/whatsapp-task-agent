@@ -129,9 +129,7 @@ async function connectWhatsApp(phoneNumber) {
   // 消息转发
   sock.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
-      // Skip own messages to avoid loops
-      if (msg.key.fromMe) continue;
-      // Accept all message types
+      // Accept all message types (including self-messages for testing)
       const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
       if (!text.trim()) continue;
 
