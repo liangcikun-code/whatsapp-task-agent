@@ -7,7 +7,6 @@
  *   PROXY_URL=http://127.0.0.1:7897 node src/bridge-pairing.js
  */
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 import qrcode from 'qrcode-terminal';
 import axios from 'axios';
 import readline from 'readline';
@@ -33,12 +32,8 @@ if (PROXY_URL) console.log(`   🔒 代理: ${PROXY_URL}`);
 console.log(`   📡 轮询: ${POLL_INTERVAL}ms\n`);
 
 // ==================== 代理 ====================
+// 已移除 SOCKS5 proxy — Clash 不支持 Baileys WebSocket 握手
 let proxyAgent = null;
-if (PROXY_URL) {
-  // 把 http://127.0.0.1:7897 → socks://127.0.0.1:7897
-  const socksUrl = PROXY_URL.replace(/^http/, 'socks');
-  proxyAgent = new SocksProxyAgent(socksUrl);
-}
 
 // ==================== 输入手机号 ====================
 function askPhone() {
@@ -89,7 +84,6 @@ async function connectWhatsApp(phoneNumber) {
 
   sock = makeWASocket({
     auth: state,
-    ...(proxyAgent ? { agent: proxyAgent } : {}),
     syncFullHistory: false,
     markOnlineOnConnect: true,
     connectTimeoutMs: 60000,
