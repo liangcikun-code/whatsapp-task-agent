@@ -30,16 +30,21 @@ async function generateTag() {
 
 export async function createTask({ title, description, priority, deadline, source, sourceChat, sourceName }) {
   const tag = await generateTag();
+  const insertData = {
+    tag,
+    title,
+    description: description || '',
+    priority: validatePriority(priority),
+    source: source || 'whatsapp',
+    source_chat: sourceChat || '',
+  };
+  // source_name may not exist yet in older DB schemas
+  if (sourceName) {
+    try { insertData.source_name = sourceName; } catch (_) { /* ignore */ }
+  }
   const { data, error } = await supabase
     .from('tasks')
-    .insert({
-      tag,
-      title,
-      description: description || '',
-      priority: validatePriority(priority),
-      source: source || 'whatsapp',
-      source_chat: sourceChat || '',
-      source_name: sourceName || '',
+    .insert(insertData)
       deadline: deadline || null,
     })
     .select()
