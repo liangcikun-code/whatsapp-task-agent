@@ -27,8 +27,6 @@ export function createServer(sendToWhatsApp) {
 
   app.use(express.json());
 
-  // ==================== 健康检查 ====================
-
   // ==================== 日程提醒配置 ====================
 
   app.get('/api/schedule/config', (req, res) => {
