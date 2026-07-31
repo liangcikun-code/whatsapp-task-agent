@@ -37,16 +37,14 @@ export async function createTask({ title, description, priority, deadline, sourc
     priority: validatePriority(priority),
     source: source || 'whatsapp',
     source_chat: sourceChat || '',
+    deadline: deadline || null,
   };
-  // source_name may not exist yet in older DB schemas
   if (sourceName) {
     try { insertData.source_name = sourceName; } catch (_) { /* ignore */ }
   }
   const { data, error } = await supabase
     .from('tasks')
     .insert(insertData)
-      deadline: deadline || null,
-    })
     .select()
     .single();
 
