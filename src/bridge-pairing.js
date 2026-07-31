@@ -134,6 +134,7 @@ async function connectWhatsApp(phoneNumber) {
       if (!text.trim()) continue;
 
       const phone = msg.key.remoteJid;
+
       const sender = phone.split('@')[0];
       const pushName = msg.pushName || '';
       console.log(`[whatsapp] 📩 ${sender}${pushName ? ' (' + pushName + ')' : ''}: ${text.slice(0, 80)}`);
