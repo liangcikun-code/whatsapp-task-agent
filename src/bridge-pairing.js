@@ -8,7 +8,8 @@
  */
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import qrcode from 'qrcode-terminal';
+import { HttpsProxyAgent } from 'hpagent';
+import readline from 'readline';
 import axios from 'axios';
 import readline from 'readline';
 import { join, dirname } from 'path';
@@ -35,9 +36,8 @@ console.log(`   📡 轮询: ${POLL_INTERVAL}ms\n`);
 // ==================== 代理 ====================
 let proxyAgent = null;
 if (PROXY_URL) {
-  // 把 http://127.0.0.1:7897 → socks://127.0.0.1:7897
-  const socksUrl = PROXY_URL.replace(/^http/, 'socks');
-  proxyAgent = new SocksProxyAgent(socksUrl);
+  // Use HTTP CONNECT proxy (works with Clash/mihomo mixed port)
+  proxyAgent = new HttpsProxyAgent(PROXY_URL);
 }
 
 // ==================== 输入手机号 ====================
