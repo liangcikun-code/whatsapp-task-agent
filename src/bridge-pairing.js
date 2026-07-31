@@ -36,7 +36,7 @@ console.log(`   📡 轮询: ${POLL_INTERVAL}ms\n`);
 let proxyAgent = null;
 if (PROXY_URL) {
   // Use HTTP CONNECT proxy (works with Clash/mihomo mixed port)
-  proxyAgent = new HttpsProxyAgent(PROXY_URL);
+  proxyAgent = new HttpsProxyAgent({ proxy: PROXY_URL });
 }
 
 // ==================== 输入手机号 ====================
