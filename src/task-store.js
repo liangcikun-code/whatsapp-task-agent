@@ -288,7 +288,7 @@ function mapTask(row) {
     status: row.status,
     source: row.source,
     sourceChat: row.source_chat || '',
-    sourceName: row.source_name || '',
+    sourceName: row.source_name || (row.source_chat ? row.source_chat : ''),
     deadline: row.deadline || null,
     createdAt: row.created_at,
     completedAt: row.completed_at,
