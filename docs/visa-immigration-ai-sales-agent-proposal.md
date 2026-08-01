@@ -216,4 +216,40 @@ Day 30: 未转化 → 进入长期培育池
 
 ---
 
+## 九、Phase 1 MVP 快速启动建议
+
+### 最小闭环（2-4 周可上线）
+
+```mermaid
+graph LR
+    A[客户 WhatsApp/微信咨询] --> B[AI Agent 自动应答]
+    B --> C{意向评分}
+    C -->|高意向 >80分| D[自动分配顾问]
+    C -->|中等意向| E[AI 定时推送内容培育]
+    C -->|低意向| F[进入内容触达池]
+    D --> G[顾问收到客户画像 + 话术推荐]
+```
+
+### MVP 需要的技术组件
+
+| 组件 | 推荐方案 | 说明 |
+|------|---------|------|
+| 大模型 | Claude API (Anthropic) | 对话质量最高，多语言能力强 |
+| 渠道接入 | WhatsApp Business API + 微信企业号 | 覆盖主要的海外/国内客户 |
+| 知识库 | 向量数据库 (Pinecone/Supabase pgvector) | 存储各国政策 FAQ |
+| 工作流引擎 | n8n (已有) | 可复用现有的 WhatsApp Task Agent 基础设施 |
+| CRM | 轻量 CRM（Notion/Airtable 起步） | MVP 阶段无需重型系统 |
+| 前端 Dashboard | 复用现有 Task Dashboard 模板 | 改造成客户管理面板 |
+
+### MVP 的具体实现步骤
+
+1. **Day 1-3**：搭建 Claude API + RAG 知识库（载入美国 EB1A/EB5/NIW、加拿大 Express Entry、澳洲技术移民等 Top 10 项目的 FAQ）
+2. **Day 4-7**：基于现有 WhatsApp Task Agent 的 n8n 工作流，改造成"咨询 → AI 回复 → 存 CRM"的闭环
+3. **Day 8-10**：实现客户意向评分（5 个维度，相对简单）
+4. **Day 11-14**：Dashboard 改造 + 测试上线
+
+MVP 阶段只做**美国 + 加拿大 + 澳洲**三个国家的 10 个主流移民/签证项目，验证获客转化漏斗。
+
+---
+
 *本方案由 Claude (Anthropic) 基于签证移民行业调研和联想乐享超级智能体架构分析生成，2026 年 8 月。*
