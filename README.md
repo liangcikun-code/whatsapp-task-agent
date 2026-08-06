@@ -88,12 +88,23 @@ node src/bridge-pairing.js 8613800000000
 
 终端会出现二维码或配对码，在手机上 **WhatsApp → 设置 → 已关联设备** 扫码/输入配对码完成关联。
 
-### 4. (可选) macOS 开机自启
+### 4. macOS 开机自启 (推荐)
 
+配对成功后，把 Bridge 设为开机自动启动，就不用每次手动开终端了。
+
+1. 编辑仓库里的 `com.whatsapp.bridge.plist`，改 3 个地方：
+   - node 路径 → `which node` 看你的 node 在哪
+   - 仓库路径 → 你的 `pwd`（必须是绝对路径）
+   - 手机号 → 改成你的号码
+   - 如果不需要代理，删掉 `PROXY_URL` 那一节
+
+2. 复制到 LaunchAgents 并加载：
 ```bash
-# 编辑 com.whatsapp.bridge.plist，把路径和手机号改成你的
+cp com.whatsapp.bridge.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.whatsapp.bridge.plist
 ```
+
+以后每次开机，Bridge 自动后台启动，**不需要再扫码配对**（会话凭据已保存）。
 
 ---
 

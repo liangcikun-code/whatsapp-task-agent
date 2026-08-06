@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.whatsapp.bridge</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- 🔧 改成你的 node 路径 (which node) -->
+        <string>/usr/local/bin/node</string>
+        <!-- 🔧 改成你仓库的绝对路径 -->
+        <string>/Users/你/git/whatsapp-task-agent/src/bridge-pairing.js</string>
+        <!-- 🔧 改成你的 WhatsApp 手机号 (带国家码，去掉+) -->
+        <string>8613800000000</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <!-- 🔧 改成你仓库的绝对路径 -->
+    <string>/Users/你/git/whatsapp-task-agent</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 不需要代理的话删掉这行 -->
+        <key>PROXY_URL</key>
+        <string>http://127.0.0.1:7897</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/whatsapp-bridge.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/whatsapp-bridge.log</string>
+</dict>
+</plist>
