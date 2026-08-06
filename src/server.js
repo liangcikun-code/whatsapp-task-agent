@@ -20,6 +20,70 @@ import { enqueueSend, getPendingSends, markSent } from './send-queue.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Parse Chinese relative date expressions into ISO dates
+function resolveRelativeDate(hint, today) {
+  const t = new Date(today);
+  const text = hint.toLowerCase().replace(/\s/g, '');
+
+  // Day-of-week mapping
+  const dayMap = {
+    '周日':0,'星期天':0,'星期日':0,
+    '周一':1,'星期一':1,
+    '周二':2,'星期二':2,
+    '周三':3,'星期三':3,
+    '周四':4,'星期四':4,
+    '周五':5,'星期五':5,
+    '周六':6,'星期六':6,
+  };
+
+  // Check explicit day-of-week: "周五", "下周三"
+  for (const [name, targetDay] of Object.entries(dayMap)) {
+    if (text.includes(name)) {
+      let daysUntil = targetDay - t.getDay();
+      if (text.includes('下')) daysUntil += 7;
+      if (daysUntil <= 0 && !text.includes('下')) daysUntil += 7; // "周五" = this coming Friday
+      if (daysUntil === 0 && !text.includes('今天') && !text.includes('今')) daysUntil = 7; // next week same day
+      // Edge: "这周五" → this week
+      if (text.includes('这') && daysUntil > 7) daysUntil -= 7;
+
+      t.setDate(t.getDate() + daysUntil);
+      return t.toISOString().slice(0, 10);
+    }
+  }
+
+  // "明天" / "后天"
+  if (text.includes('后天')) {
+    t.setDate(t.getDate() + 2);
+    return t.toISOString().slice(0, 10);
+  }
+  if (text.includes('明天')) {
+    t.setDate(t.getDate() + 1);
+    return t.toISOString().slice(0, 10);
+  }
+
+  // "下周" without specific day → next Monday
+  if (text.includes('下周')) {
+    const daysUntil = (8 - t.getDay()) % 7 || 7; // next Monday
+    t.setDate(t.getDate() + daysUntil);
+    return t.toISOString().slice(0, 10);
+  }
+
+  // "周末" → this Saturday
+  if (text.includes('周末')) {
+    const daysUntil = (6 - t.getDay() + 7) % 7 || 7;
+    t.setDate(t.getDate() + daysUntil);
+    return t.toISOString().slice(0, 10);
+  }
+
+  // "本月" → end of this month
+  if (text.includes('月底') || text.includes('月末')) {
+    t.setMonth(t.getMonth() + 1, 0); // last day of current month
+    return t.toISOString().slice(0, 10);
+  }
+
+  return null;
+}
+
 export function createServer(sendToWhatsApp) {
   const app = express();
   // 静态文件：Web Dashboard
@@ -93,10 +157,23 @@ export function createServer(sendToWhatsApp) {
     if (config.deepseekApiKey) {
       try {
         const axios = (await import('axios')).default;
+        const today = new Date();
+        const todayISO = today.toISOString().slice(0, 10);
+        const weekDay = ['周日','周一','周二','周三','周四','周五','周六'][today.getDay()];
         const aiResp = await axios.post('https://api.deepseek.com/chat/completions', {
           model: 'deepseek-chat',
           messages: [
-            { role: 'system', content: '你是一个 WhatsApp 任务管理助手。分析用户消息，提取任务。返回纯JSON（不要markdown包裹）：{"action":"create|query|complete|summary|ignore","title":"任务标题","priority":"high|medium|low","deadline":"ISO日期或null","description":"备注或null"}' },
+            { role: 'system', content: `你是一个 WhatsApp 任务管理助手。分析用户消息，提取任务。
+
+今天是 ${todayISO} (${weekDay})。
+
+关于 deadline 字段的规则：
+- 如果用户说了具体日期（如"8月15号"），用 YYYY-MM-DD 格式
+- 如果用户说的是相对时间（如"周五前""下周三""明天下午"），deadlineHint 写原文（如"周五""下周三"），deadline 写 null
+- 如果没有提到时间，两个都写 null
+
+返回纯JSON（不要markdown包裹）：
+{"action":"create|query|complete|summary|ignore","title":"任务标题","priority":"high|medium|low","deadline":"YYYY-MM-DD或null","deadlineHint":"用户原文时间描述或null","description":"备注或null"}` },
             { role: 'user', content: text }
           ],
           temperature: 0.1,
@@ -106,21 +183,29 @@ export function createServer(sendToWhatsApp) {
         });
 
         const aiContent = aiResp.data?.choices?.[0]?.message?.content || '';
-        // Strip markdown code block if present
         const jsonStr = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         const parsed = JSON.parse(jsonStr);
+
+        // Resolve relative dates ("周五", "下周三", "明天") into real dates
+        let resolvedDeadline = parsed.deadline || null;
+        if (!resolvedDeadline && parsed.deadlineHint) {
+          resolvedDeadline = resolveRelativeDate(parsed.deadlineHint, today);
+          if (resolvedDeadline) {
+            console.log(`[server] 📅 解析相对日期: "${parsed.deadlineHint}" → ${resolvedDeadline}`);
+          }
+        }
 
         if (parsed.action === 'create' && parsed.title) {
           const task = await createTask({
             title: parsed.title,
             description: parsed.description || '',
             priority: parsed.priority || 'medium',
-            deadline: parsed.deadline || null,
+            deadline: resolvedDeadline,
             source: 'whatsapp',
             sourceChat: phone || sender,
             sourceName: pushName || '',
           });
-          console.log(`[server] ✅ 已创建任务: ${task.id} - ${parsed.title}`);
+          console.log(`[server] ✅ 已创建任务: ${task.id} - ${parsed.title} (deadline: ${resolvedDeadline || '无'})`);
         } else {
           console.log(`[server] ℹ️ AI 分析结果: action=${parsed.action}`);
         }
