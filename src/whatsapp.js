@@ -111,23 +111,30 @@ export async function connectWhatsApp() {
 }
 
 async function handleMessage(msg) {
-  // 跳过自己的消息
-  if (msg.key.fromMe) return;
   if (!msg.message || !msg.message.conversation && !msg.message.extendedTextMessage) return;
 
-  const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-  if (!text.trim()) return;
+  const rawText = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
+  if (!rawText.trim()) return;
+
+  // Only process messages starting with /t (command trigger)
+  if (!rawText.trimStart().startsWith('/t')) return;
+
+  // Strip the /t prefix (and optional space)
+  const text = rawText.trimStart().replace(/^\/t\s*/, '').trim();
+  if (!text) return; // nothing after /t
 
   const phone = msg.key.remoteJid;
   const sender = phone.split('@')[0];
 
-  // 白名单过滤
-  if (config.whatsapp.whitelist.length > 0 && !config.whatsapp.whitelist.includes(sender)) {
+  // Allow self-messages (fromMe) — they must also start with /t
+  // Whitelist filtering still applies to messages from others
+  if (!msg.key.fromMe && config.whatsapp.whitelist.length > 0 && !config.whatsapp.whitelist.includes(sender)) {
     console.log(`[whatsapp] ⛔ 忽略非白名单消息: ${sender}`);
     return;
   }
 
-  console.log(`[whatsapp] 📩 ${sender}: ${text.slice(0, 80)}${text.length > 80 ? '...' : ''}`);
+  const fromTag = msg.key.fromMe ? '(自己)' : '';
+  console.log(`[whatsapp] 📩 ${sender}${fromTag}: ${text.slice(0, 80)}${text.length > 80 ? '...' : ''}`);
 
   // 如果注册了外部处理器，转交处理
   if (onMessage) {

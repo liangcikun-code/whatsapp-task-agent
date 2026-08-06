@@ -126,18 +126,24 @@ async function connectWhatsApp(phoneNumber) {
 
   sock.ev.on('creds.update', saveCreds);
 
-  // 消息转发
+  // 消息转发: only messages starting with /t
   sock.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
-      // Accept all message types (including self-messages for testing)
-      const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-      if (!text.trim()) continue;
+      const rawText = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
+      if (!rawText.trim()) continue;
+
+      // Only process /t commands
+      if (!rawText.trimStart().startsWith('/t')) continue;
+
+      // Strip /t prefix
+      const text = rawText.trimStart().replace(/^\/t\s*/, '').trim();
+      if (!text) continue;
 
       const phone = msg.key.remoteJid;
-
       const sender = phone.split('@')[0];
       const pushName = msg.pushName || (sock.user?.name || '');
-      console.log(`[whatsapp] 📩 ${sender}${pushName ? ' (' + pushName + ')' : ''}: ${text.slice(0, 80)}`);
+      const fromTag = msg.key.fromMe ? '(自己)' : '';
+      console.log(`[whatsapp] 📩 ${sender}${fromTag}${pushName ? ' (' + pushName + ')' : ''}: ${text.slice(0, 80)}`);
 
       try {
         await axios.post(`${API_URL}/api/messages/incoming`, {
