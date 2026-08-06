@@ -1,9 +1,10 @@
 /**
- * Express API 服务器 (Dify/n8n HTTP Tool 的后端)
+ * Express API 服务器 — WhatsApp Task Agent v2.0
  *
- * 混合架构: Railway 跑此 API + n8n，本地跑 WhatsApp Bridge
+ * Railway 云端运行, 内置 DeepSeek AI, JWT 认证
  */
 import express from 'express';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { config } from './config.js';
@@ -84,12 +85,89 @@ function resolveRelativeDate(hint, today) {
   return null;
 }
 
+// ── JWT Auth (HMAC-SHA256, zero dependencies) ──
+const JWT_SECRET = config.auth.password || crypto.randomBytes(32).toString('hex');
+const TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+
+function signToken(username) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({
+    sub: username,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + TOKEN_EXPIRY / 1000,
+  })).toString('base64url');
+  const signature = crypto.createHmac('sha256', JWT_SECRET)
+    .update(`${header}.${payload}`).digest('base64url');
+  return `${header}.${payload}.${signature}`;
+}
+
+function verifyToken(token) {
+  try {
+    const [header, payload, signature] = token.split('.');
+    const expected = crypto.createHmac('sha256', JWT_SECRET)
+      .update(`${header}.${payload}`).digest('base64url');
+    if (signature !== expected) return null;
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    if (data.exp * 1000 < Date.now()) return null;
+    return data;
+  } catch { return null; }
+}
+
+function authMiddleware(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: '未登录' });
+  }
+  const token = auth.slice(7);
+  const data = verifyToken(token);
+  if (!data) {
+    return res.status(401).json({ error: '登录已过期' });
+  }
+  req.user = data;
+  next();
+}
+
+function isAuthenticated(req) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return false;
+  return !!verifyToken(auth.slice(7));
+}
+
 export function createServer(sendToWhatsApp) {
   const app = express();
-  // 静态文件：Web Dashboard
+  app.use(express.json());
+
+  // ── Auth: login endpoint (no auth required) ──
+  app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    if (!config.auth.password) {
+      return res.json({ token: signToken('admin'), message: '未设密码，免登模式' });
+    }
+    if (username === config.auth.username && password === config.auth.password) {
+      return res.json({ token: signToken(username) });
+    }
+    res.status(401).json({ error: '用户名或密码错误' });
+  });
+
+  app.get('/api/auth/check', (req, res) => {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ ok: false });
+    const data = verifyToken(auth.slice(7));
+    res.json({ ok: !!data, user: data?.sub });
+  });
+
+  // ── Static files (login + dashboard) ──
   app.use(express.static(resolve(__dirname, '..', 'public')));
 
-  app.use(express.json());
+  // ── Protected routes middleware ──
+  app.use('/api', (req, res, next) => {
+    // Skip auth for login, health, and incoming messages (Bridge)
+    if (req.path === '/auth/login' || req.path === '/auth/check' ||
+        req.path === '/health' || req.path === '/messages/incoming') {
+      return next();
+    }
+    authMiddleware(req, res, next);
+  });
 
   // ==================== 日程提醒配置 ====================
 

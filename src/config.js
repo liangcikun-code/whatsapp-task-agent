@@ -27,6 +27,12 @@ export const config = {
     anonKey: process.env.SUPABASE_ANON_KEY || '',
   },
 
+  // Auth (dashboard login)
+  auth: {
+    username: process.env.AUTH_USERNAME || 'admin',
+    password: process.env.AUTH_PASSWORD || '',
+  },
+
   // WhatsApp
   whatsapp: {
     whitelist: process.env.WHITELIST_PHONES
