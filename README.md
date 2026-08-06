@@ -1,256 +1,164 @@
 # WhatsApp Task Agent
 
-**WhatsApp 聊天 → AI 自动提取待办 + 优先级排序 + 定时提醒 + 周/月总结 + Web Dashboard**
+**WhatsApp 聊天 → AI 自动提取待办 + 优先级排序 + Web Dashboard 管理**
 
-双通道任务管理：**WhatsApp 做输入+提醒**，**Web Dashboard 做管理+概览**。
+用 WhatsApp 发 `/t` 命令来创建任务，AI 自动解析任务内容、优先级和截止时间，存入数据库，在 Web 面板统一管理。
 
-## 系统架构
+---
+
+## Demo
 
 ```
-WhatsApp 用户
-      │
-      ▼
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  本地 Bridge      │────▶│  Railway Task API │────▶│  n8n Workflow     │
-│  (Baileys v7)    │◀────│  (Express)        │◀────│  (AI 处理+CRUD)   │
-└──────────────────┘     └──────────────────┘     └──────────────────┘
-      │                          │                        │
-      ▼                          ▼                        ▼
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  WhatsApp 收发    │     │  Web Dashboard   │     │  Supabase         │
-│  (消息队列轮询)    │     │  (纯前端 SPA)    │     │  (PostgreSQL)     │
-└──────────────────┘     └──────────────────┘     └──────────────────┘
+你在 WhatsApp 发:  /t 周五前把签证材料整理好
+                        ↓
+AI 自动提取:  📋 整理签证材料   ⚡ medium   📅 2026-08-07
+                        ↓
+Dashboard 实时显示，可打勾完成、编辑、筛选
 ```
 
-## 双通道使用
+---
 
-| 通道 | 用途 | 场景 |
-|------|------|------|
-| **WhatsApp** | 输入 + 提醒 | 自然聊天创建任务、快速查询、随手标记完成、接收推送 |
-| **Web Dashboard** | 管理 + 概览 | 任务看板（按优先级分组）、一键创建/完成/删除、日程配置开关 |
+## 架构
 
-## 核心功能
+```
+WhatsApp 消息
+    │
+    ▼
+本地 Bridge (Baileys v7)  ← 你的 Mac/服务器，24h 在线
+    │  只转发 /t 开头的消息
+    ▼
+Railway Task API (Express)
+    │  内置 DeepSeek AI 分析 → 提取任务
+    ▼
+Supabase (PostgreSQL)
+    │
+    ▼
+Web Dashboard  ← 管理面板
+```
 
-| 功能 | 说明 |
-|------|------|
-| **自动提取任务** | AI 分析聊天内容，自动识别待办事项，支持中文自然语言 |
-| **AI 优先级排序** | 根据截止日期、紧急性、来源自动分配 high/medium/low |
-| **双通道管理** | WhatsApp 输入+提醒，Web Dashboard 管理+概览 |
-| **标记完成** | 发一句"做完了"或点击 Dashboard 一键完成 |
-| **每日提醒** | 每天早上 09:00 推送今日待办（含逾期提醒） |
-| **每周总结** | 周日 20:00 推送周度任务完成情况报告 |
-| **每月总结** | 每月 1 号 20:00 推送月度回顾（可选） |
-| **日程配置** | Dashboard 一键开关：早报/晚报/周报/月报 |
-| **Web Dashboard** | 纯前端 SPA，连接 Task API，按优先级分组展示 |
-| **REST API** | Express 服务供 n8n/外部系统 通过 HTTP 调用 |
+**没有 n8n，没有 Dify。** DeepSeek 直接内置在 Task API 里，少一层依赖，少一个故障点。
 
-## 日程提醒策略
+---
 
-默认只开启高频价值推送，低频推送让用户自己选：
+## 自己部署 (4 步)
 
-| 推送 | 时间 | 默认 |
-|------|------|------|
-| 每日早报 | 09:00 — 今日到期+逾期提醒 | ✅ 开启 |
-| 每日晚报 | 21:00 — 今日创建+明日待办 | ❌ 关闭 |
-| 周报 | 周日 20:00 — 本周完成率+下周待办 | ✅ 开启 |
-| 月报 | 次月 1 号 20:00 — 月度回顾+趋势 | ❌ 关闭 |
+### 你需要准备
 
-通过 Web Dashboard 或 `PATCH /api/schedule/config` 开关。
+- GitHub 账号
+- Railway 账号 (免费额度够用)
+- Supabase 账号 (免费额度够用)
+- DeepSeek API Key ([platform.deepseek.com](https://platform.deepseek.com) 注册即送额度)
+- 一台能 24h 开机的电脑 (Mac/Windows/Linux 都行，需要能翻墙连 WhatsApp)
 
-## 快速开始
+### 1. Supabase 建表
 
-### 前置要求
+在 Supabase SQL Editor 执行 `supabase/migration.sql`，记下 `SUPABASE_URL` 和 `SUPABASE_ANON_KEY`。
 
-- **Node.js 18+**（推荐 20+）
-- **Railway 账号**（部署 API）+ **Supabase 账号**（数据库）
-- **n8n** (Railway 上运行，或自建) — AI 处理引擎
-- **本地机器** — 运行 WhatsApp Bridge (Baileys)
+### 2. Railway 部署 Task API
 
-### 1. 创建 Supabase 数据库
-
-1. 登录 [supabase.com](https://supabase.com) → 创建项目（免费）
-2. 进入 **SQL Editor** → 复制粘贴 `supabase/migration.sql` → 运行
-3. 进入 **Settings → API** → 复制 `Project URL` 和 `anon public key`
-
-### 2. 部署 Task API 到 Railway
-
-1. 将本项目推送到 GitHub 仓库
-2. 登录 [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-3. 设置环境变量：
+- Fork 这个仓库
+- 在 Railway 新建项目 → Deploy from GitHub → 选 fork 的仓库
+- 添加环境变量：
 
 | 变量 | 值 |
-|------|-----|
-| `SUPABASE_URL` | 从 Supabase 复制 |
-| `SUPABASE_ANON_KEY` | 从 Supabase 复制 |
-| `N8N_WEBHOOK_URL` | n8n webhook URL（消息处理） |
-| `MY_PHONE` | 接收定时提醒的手机号 |
-| `RAILWAY_PUBLIC_DOMAIN` | Railway 自动生成 |
+|---|---|
+| `SUPABASE_URL` | 你的 Supabase URL |
+| `SUPABASE_ANON_KEY` | 你的 Supabase anon key |
+| `DEEPSEEK_API_KEY` | `sk-xxx` 你的 DeepSeek key |
+| `MY_PHONE` | 你的 WhatsApp 手机号 (带国家码，如 `8613800000000`) |
 
-4. Railway 自动检测 Dockerfile 并构建部署
+- Railway 自动部署，记下生成的域名 (如 `xxx.up.railway.app`)
 
-### 3. 配置 n8n Workflow
-
-详见 `n8n-workflows/README.md`。需要创建 3 个 workflow：
-- **WhatsApp 消息处理** — Webhook 接收 → Code node → Task CRUD → 回复队列
-- **WhatsApp 每日提醒** — Cron 每天 09:00 → 查询待办 → 发送提醒
-- **WhatsApp 周月总结** — Cron 每天 20:00 → 周日=周报，1号=月报
-
-### 4. 启动本地 Bridge
+### 3. 启动本地 Bridge
 
 ```bash
+# 克隆仓库到本地
+git clone https://github.com/你的用户名/whatsapp-task-agent.git
 cd whatsapp-task-agent
-npm install
-PROXY_URL=http://127.0.0.1:7897 \
-RAILWAY_API_URL=https://task-api-production-xxxx.up.railway.app \
-node src/bridge-pairing.js 86xxxxxxxxxxx
+
+# 设置 Railway API 地址 (改成你 Railway 的域名)
+export RAILWAY_API_URL=https://你的域名.up.railway.app
+
+# 如果在中国大陆，需要代理连 WhatsApp
+export PROXY_URL=http://127.0.0.1:7897
+
+# 启动 Bridge (把手机号换成你的)
+node src/bridge-pairing.js 8613800000000
 ```
 
-终端会显示配对码，在手机 WhatsApp 上输入完成登录。
+终端会出现二维码或配对码，在手机上 **WhatsApp → 设置 → 已关联设备** 扫码/输入配对码完成关联。
 
-### 5. 打开 Web Dashboard
-
-浏览器访问 `https://task-api-production-xxxx.up.railway.app/dashboard.html`
-
-或者本地开发时：`http://localhost:3000/dashboard.html`
-
-## 本地开发
+### 4. (可选) macOS 开机自启
 
 ```bash
-# 复制配置
-cp .env.example .env
-# 编辑 .env 填入 SUPABASE_URL, SUPABASE_ANON_KEY 等
-
-# 安装依赖
-npm install
-
-# 启动（只启动 API，不连 WhatsApp）
-npm start
-
-# 打开 Dashboard
-open http://localhost:3000/dashboard.html
+# 编辑 com.whatsapp.bridge.plist，把路径和手机号改成你的
+launchctl load ~/Library/LaunchAgents/com.whatsapp.bridge.plist
 ```
 
-## 项目结构
+---
+
+## 使用
+
+### 创建任务
+
+在 WhatsApp 给**任何人**（包括自己）发消息，以 `/t` 开头：
 
 ```
-whatsapp-task-agent/
-├── src/
-│   ├── index.js            # 入口：启动 API + 调度器
-│   ├── config.js           # 配置加载 (env vars)
-│   ├── whatsapp.js         # WhatsApp 桥接 (Baileys v7)
-│   ├── task-store.js       # 任务存储 (Supabase PostgreSQL)
-│   ├── server.js           # Express API + 静态文件服务
-│   ├── scheduler.js        # 定时任务调度 (node-cron)
-│   ├── send-queue.js       # 消息发送队列
-│   ├── schedule-config.js  # 日程配置持久化
-│   ├── bridge-pairing.js   # 本地 Bridge (配对码登录)
-│   └── phone-helper.js     # 手机号格式处理
-├── public/
-│   └── dashboard.html      # Web Dashboard (纯前端 SPA)
-├── n8n-workflows/
-│   └── README.md           # n8n 工作流设计文档
-├── supabase/
-│   └── migration.sql       # 数据库建表脚本
-├── dify-agent/
-│   ├── system-prompt.md    # Dify Agent 系统提示词 (legacy)
-│   └── workflow-design.md  # Workflow 设计文档 (legacy)
-├── data/
-│   ├── schedule.json       # 日程配置
-│   └── auth/               # WhatsApp 登录凭证
-├── Dockerfile
-├── package.json
-└── README.md
+/t 明天下午3点跟客户开会
+/t 周五前把材料整理好
+/t 下周三之前完成报告 高优先级
 ```
 
-## API 端点
+### Dashboard 管理
 
-### 任务 CRUD
+打开 `https://你的域名.up.railway.app/dashboard.html`：
 
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| `GET` | `/api/tasks` | 列出任务 (?status=pending&priority=high) |
-| `POST` | `/api/tasks` | 创建任务 |
-| `GET` | `/api/tasks/:id` | 获取单个任务 |
-| `PATCH` | `/api/tasks/:id` | 更新任务 |
-| `POST` | `/api/tasks/:id/done` | 标记完成 |
-| `DELETE` | `/api/tasks/:id` | 删除任务 |
+- 点击行 → 打勾完成
+- **+ 新建任务** → 手动添加
+- **编辑** → 修改标题/优先级/截止日/备注
+- 搜索框 → 筛选任务
+- 日程配置 → 开关提醒
 
-### 统计 & 总结
+### 触发规则
 
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| `GET` | `/api/tasks/stats` | 任务统计 (total/done/pending) |
-| `GET` | `/api/tasks/summary?range=week` | 周/月/季/年总结 |
-| `GET` | `/api/tasks/summary?from=...&to=...` | 自定义日期范围 |
+| 消息 | 是否处理 |
+|---|---|
+| `/t 明天开会` | ✅ AI 分析创建任务 |
+| `/t 把报告写完 高优先级` | ✅ |
+| `明天开会` (没有 /t) | ❌ 忽略 |
+| 你自己发给自己的 `/t 记得买菜` | ✅ 支持自己给自己发 |
 
-### 消息队列
+---
 
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| `POST` | `/api/queue/send` | 入队消息 (n8n/scheduler → Bridge) |
-| `GET` | `/api/queue/poll` | 轮询待发送消息 (Bridge → 队列) |
-| `POST` | `/api/queue/ack` | 确认已发送 |
-| `POST` | `/api/messages/incoming` | 接收 WhatsApp 消息 (Bridge → API) |
+## API
 
-### 日程配置
+| 端点 | 说明 |
+|---|---|
+| `GET /api/tasks` | 任务列表 |
+| `POST /api/tasks` | 创建任务 |
+| `PATCH /api/tasks/:id` | 更新任务 |
+| `POST /api/tasks/:id/done` | 标记完成 |
+| `DELETE /api/tasks/:id` | 删除 |
+| `GET /api/tasks/stats` | 统计 |
+| `GET /api/tasks/summary?range=week` | 周/月总结 |
+| `POST /api/messages/incoming` | Bridge 转发消息 |
+| `GET /api/queue/poll` | Bridge 轮询待发消息 |
+| `POST /api/queue/send` | 入队待发消息 |
 
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| `GET` | `/api/schedule/config` | 获取日程开关配置 |
-| `PATCH` | `/api/schedule/config` | 更新开关 (`{"morningReport":false}`) |
-| `POST` | `/api/schedule/config/reset` | 重置为默认值 |
+---
 
-### 健康检查
+## 成本
 
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| `GET` | `/api/health` | 健康检查 |
+| 服务 | 费用 |
+|---|---|
+| Railway | 免费额度 ($5/月，够用) |
+| Supabase | 免费额度 (500MB) |
+| DeepSeek API | ~¥0.002/条消息 |
+| 本地电脑 | 电费 |
 
-## 手动测试 API
+**每月总成本 < ¥5**（假设每天 10-20 条 /t 消息）。
 
-```bash
-# 创建任务
-curl -X POST http://localhost:3000/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"测试任务","priority":"high","deadline":"2026-08-01T10:00:00Z"}'
-
-# 列出待办
-curl http://localhost:3000/api/tasks?status=pending
-
-# 标记完成
-curl -X POST http://localhost:3000/api/tasks/xxxxx/done
-
-# 获取日程配置
-curl http://localhost:3000/api/schedule/config
-
-# 切换晚报开关
-curl -X PATCH http://localhost:3000/api/schedule/config \
-  -H "Content-Type: application/json" \
-  -d '{"eveningReport":true}'
-```
-
-## 部署成本
-
-| 服务 | 月费 | 用途 |
-|------|------|------|
-| Railway Free | ¥0 | Task API (500h/月) |
-| Supabase Free | ¥0 | PostgreSQL (500MB) |
-| n8n (Railway self-host) | ¥0 | AI 工作流引擎 |
-| DeepSeek API | ¥10-30 | LLM 推理（按量） |
-| **总计** | **¥10-30/月** | |
-
-## Roadmap
-
-- [x] WhatsApp 消息收发 (Baileys)
-- [x] n8n + Task API + Supabase 混合架构
-- [x] 任务 CRUD + 优先级排序
-- [x] 每日提醒 + 周/月总结定时推送
-- [x] 日程配置开关 (早报/晚报/周报/月报)
-- [x] Web Dashboard（任务看板+日程配置）
-- [ ] WhatsApp 消息接收修复 (Baileys v7 messages.upsert)
-- [ ] 多用户支持（群聊分析）
-- [ ] 导出任务到 Todoist / Notion
-- [ ] Dify Workflow 版本（替代 Agent 模式）
+---
 
 ## License
 
