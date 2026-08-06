@@ -18,6 +18,9 @@ export const config = {
   // n8n（替换 Dify 作为 AI 引擎，配了这个就不需要 Dify 了）
   n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || '',
 
+  // DeepSeek（内置 AI，不需要 n8n）
+  deepseekApiKey: process.env.DEEPSEEK_API_KEY || '',
+
   // Supabase
   supabase: {
     url: process.env.SUPABASE_URL || '',

@@ -89,22 +89,61 @@ export function createServer(sendToWhatsApp) {
 
     console.log(`[server] 📩 收到消息 ${sender}${pushName ? ' (' + pushName + ')' : ''}: ${text.slice(0, 80)}`);
 
-    // 转发到 n8n
-    if (config.n8nWebhookUrl) {
+    // 内置 DeepSeek AI 分析
+    if (config.deepseekApiKey) {
+      try {
+        const axios = (await import('axios')).default;
+        const aiResp = await axios.post('https://api.deepseek.com/chat/completions', {
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: '你是一个 WhatsApp 任务管理助手。分析用户消息，提取任务。返回纯JSON（不要markdown包裹）：{"action":"create|query|complete|summary|ignore","title":"任务标题","priority":"high|medium|low","deadline":"ISO日期或null","description":"备注或null"}' },
+            { role: 'user', content: text }
+          ],
+          temperature: 0.1,
+        }, {
+          headers: { Authorization: `Bearer ${config.deepseekApiKey}`, 'Content-Type': 'application/json' },
+          timeout: 30000,
+        });
+
+        const aiContent = aiResp.data?.choices?.[0]?.message?.content || '';
+        // Strip markdown code block if present
+        const jsonStr = aiContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsed = JSON.parse(jsonStr);
+
+        if (parsed.action === 'create' && parsed.title) {
+          const task = await createTask({
+            title: parsed.title,
+            description: parsed.description || '',
+            priority: parsed.priority || 'medium',
+            deadline: parsed.deadline || null,
+            source: 'whatsapp',
+            sourceChat: phone || sender,
+            sourceName: pushName || '',
+          });
+          console.log(`[server] ✅ 已创建任务: ${task.id} - ${parsed.title}`);
+        } else {
+          console.log(`[server] ℹ️ AI 分析结果: action=${parsed.action}`);
+        }
+      } catch (err) {
+        console.error('[server] DeepSeek 分析失败:', err.message);
+      }
+    }
+
+    // n8n 转发（保留兼容，DeepSeek 优先）
+    if (!config.deepseekApiKey && config.n8nWebhookUrl) {
       try {
         const axios = (await import('axios')).default;
         await axios.post(config.n8nWebhookUrl, {
-          phone: sender,
-          jid: phone || sender,
-          message: text,
-          pushName: pushName || '',
+          phone: sender, jid: phone || sender, message: text, pushName: pushName || '',
         }, { timeout: 30000 });
         console.log('[server] 已转发到 n8n');
       } catch (err) {
         console.error('[server] n8n webhook 失败:', err.message);
       }
-    } else {
-      console.log('[server] ⚠ N8N_WEBHOOK_URL 未配置，消息未处理');
+    }
+
+    if (!config.deepseekApiKey && !config.n8nWebhookUrl) {
+      console.log('[server] ⚠ DEEPSEEK_API_KEY 和 N8N_WEBHOOK_URL 均未配置，消息未处理');
     }
 
     res.json({ success: true });
