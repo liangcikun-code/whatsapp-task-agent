@@ -789,7 +789,7 @@
     async function deleteTask(id) {
       if (!confirm('确定删除 #'+id+' 吗？')) return;
       try {
-        const r = await fetch(API+'/api/tasks/'+id, {method:'DELETE'});
+        const r = await authFetch(API+'/api/tasks/'+id, {method:'DELETE'});
         if (!r.ok) throw new Error();
         toast('已删除');
         loadTasks();
@@ -847,8 +847,8 @@
       btn.disabled = true; btn.textContent = '保存中…';
       try {
         let r;
-        if (id) r = await fetch(API+'/api/tasks/'+id, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-        else r = await fetch(API+'/api/tasks', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        if (id) r = await authFetch(API+'/api/tasks/'+id, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        else r = await authFetch(API+'/api/tasks', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         if (!r.ok) throw new Error();
         toast(id?'已更新':'已创建');
         closeModal(); loadTasks();
@@ -912,7 +912,7 @@
       const val = prompt('备注:');
       if (val===null) return;
       try {
-        const r = await fetch(API+'/api/tasks/'+id, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:val})});
+        const r = await authFetch(API+'/api/tasks/'+id, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:val})});
         const data = await r.json();
         if (!r.ok || data.error) throw new Error(data.error || 'fail');
         toast('备注已添加');
