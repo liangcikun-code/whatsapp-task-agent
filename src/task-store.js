@@ -99,16 +99,15 @@ function isUUID(s) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 }
 
-/** Build a where clause matching either UUID id or short tag */
-function idOrTag(id) {
-  return isUUID(id) ? `id.eq.${id},tag.eq.${id}` : `tag.eq.${id}`;
+/** Apply id-or-tag filter to query (avoids single-condition or() bug) */
+function idFilter(query, id) {
+  return isUUID(id) ? query.or(`id.eq.${id},tag.eq.${id}`) : query.eq('tag', id);
 }
 
 export async function getTask(id) {
-  const { data, error } = await supabase
+  const { data, error } = await idFilter(supabase
     .from('tasks')
-    .select('*')
-    .or(idOrTag(id))
+    .select('*'), id)
     .maybeSingle();
 
   if (error) throw new Error(`查询任务失败: ${error.message}`);
@@ -124,10 +123,9 @@ export async function updateTask(id, updates) {
   if (updates.sourceName !== undefined) set.source_name = updates.sourceName || '';
   if (updates.sourceChat !== undefined) set.source_chat = updates.sourceChat || '';
 
-  const { data, error } = await supabase
+  const { data, error } = await idFilter(supabase
     .from('tasks')
-    .update(set)
-    .or(idOrTag(id))
+    .update(set), id)
     .select()
     .maybeSingle();
 
@@ -136,10 +134,9 @@ export async function updateTask(id, updates) {
 }
 
 export async function completeTask(id) {
-  const { data, error } = await supabase
+  const { data, error } = await idFilter(supabase
     .from('tasks')
-    .update({ status: 'done', completed_at: new Date().toISOString() })
-    .or(idOrTag(id))
+    .update({ status: 'done', completed_at: new Date().toISOString() }), id)
     .select()
     .maybeSingle();
 
@@ -148,10 +145,9 @@ export async function completeTask(id) {
 }
 
 export async function uncompleteTask(id) {
-  const { data, error } = await supabase
+  const { data, error } = await idFilter(supabase
     .from('tasks')
-    .update({ status: 'pending', completed_at: null })
-    .or(idOrTag(id))
+    .update({ status: 'pending', completed_at: null }), id)
     .select()
     .maybeSingle();
 
@@ -160,10 +156,9 @@ export async function uncompleteTask(id) {
 }
 
 export async function deleteTask(id) {
-  const { error } = await supabase
+  const { error } = await idFilter(supabase
     .from('tasks')
-    .delete()
-    .or(idOrTag(id));
+    .delete(), id);
 
   if (error) throw new Error(`删除任务失败: ${error.message}`);
   return true;
