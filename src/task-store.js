@@ -107,11 +107,10 @@ function idFilter(query, id) {
 export async function getTask(id) {
   const { data, error } = await idFilter(supabase
     .from('tasks')
-    .select('*'), id)
-    .maybeSingle();
+    .select('*'), id);
 
   if (error) throw new Error(`查询任务失败: ${error.message}`);
-  return data ? mapTask(data) : null;
+  return (data && data.length) ? mapTask(data[0]) : null;
 }
 
 export async function updateTask(id, updates) {
@@ -126,33 +125,30 @@ export async function updateTask(id, updates) {
   const { data, error } = await idFilter(supabase
     .from('tasks')
     .update(set), id)
-    .select()
-    .maybeSingle();
+    .select();
 
   if (error) throw new Error(`更新任务失败: ${error.message}`);
-  return data ? mapTask(data) : null;
+  return (data && data.length) ? mapTask(data[0]) : null;
 }
 
 export async function completeTask(id) {
   const { data, error } = await idFilter(supabase
     .from('tasks')
     .update({ status: 'done', completed_at: new Date().toISOString() }), id)
-    .select()
-    .maybeSingle();
+    .select();
 
   if (error) throw new Error(`标记完成失败: ${error.message}`);
-  return data ? mapTask(data) : null;
+  return (data && data.length) ? mapTask(data[0]) : null;
 }
 
 export async function uncompleteTask(id) {
   const { data, error } = await idFilter(supabase
     .from('tasks')
     .update({ status: 'pending', completed_at: null }), id)
-    .select()
-    .maybeSingle();
+    .select();
 
   if (error) throw new Error(`撤销完成失败: ${error.message}`);
-  return data ? mapTask(data) : null;
+  return (data && data.length) ? mapTask(data[0]) : null;
 }
 
 export async function deleteTask(id) {
